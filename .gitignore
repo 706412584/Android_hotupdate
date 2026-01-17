@@ -35,7 +35,12 @@ local.properties
 *.jks
 *.keystore
 
-# Maven Central 发布凭证
+# Maven Central 发布凭证和临时文件
 gradle.properties
-secring.gpg
-*.asc
+maven-central/secring.gpg
+maven-central/*.asc
+maven-central/bundle.zip
+maven-central/deployment_response.json
+maven-central/deployments_list.json
+maven-central/status_response.json
+maven-central/temp_token.txt

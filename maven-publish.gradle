@@ -15,7 +15,7 @@ ext {
     
     // POM 信息
     pomGroupId = 'io.github.706412584'
-    pomVersion = '1.2.9'
+    pomVersion = '1.3.0'
     pomUrl = 'https://github.com/706412584/Android_hotupdate'
     pomScmUrl = 'https://github.com/706412584/Android_hotupdate.git'
     pomScmConnection = 'scm:git:git://github.com/706412584/Android_hotupdate.git'
@@ -34,9 +34,14 @@ ext {
 publishing {
     repositories {
         maven {
+            name = 'local'
+            url = layout.buildDirectory.dir('repo')
+        }
+        maven {
             name = 'sonatype'
-            def releasesRepoUrl = 'https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/'
-            def snapshotsRepoUrl = 'https://s01.oss.sonatype.org/content/repositories/snapshots/'
+            // 新的 Central Portal OSSRH Staging API 兼容服务
+            def releasesRepoUrl = 'https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/'
+            def snapshotsRepoUrl = 'https://ossrh-staging-api.central.sonatype.com/content/repositories/snapshots/'
             url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
             
             credentials {
@@ -50,6 +55,8 @@ publishing {
 // 配置签名
 signing {
     if (signingKeyId && signingPassword && signingSecretKeyRingFile) {
+        // 使用指定的密钥文件和密钥 ID
+        required = true
         sign publishing.publications
     }
 }

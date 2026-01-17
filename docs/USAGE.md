@@ -176,8 +176,23 @@ File decryptedPatch = password.isEmpty()
     ? securityManager.decryptPatch(encryptedPatch)
     : securityManager.decryptPatchWithPassword(encryptedPatch, password);
 
-RealHotUpdate hotUpdate = new RealHotUpdate(context);
-hotUpdate.applyPatch(decryptedPatch, callback);
+HotUpdateHelper helper = new HotUpdateHelper(context);
+helper.applyPatch(decryptedPatch, new HotUpdateHelper.Callback() {
+    @Override
+    public void onProgress(int percent, String message) {
+        Log.d(TAG, message + ": " + percent + "%");
+    }
+    
+    @Override
+    public void onSuccess(HotUpdateHelper.PatchResult result) {
+        Log.i(TAG, "补丁应用成功！");
+    }
+    
+    @Override
+    public void onError(String message) {
+        Log.e(TAG, "应用失败: " + message);
+    }
+});
 ```
 
 ### 7. 使用密码加密补丁
@@ -203,15 +218,15 @@ try {
     File decryptedPatch = clientSecurityManager.decryptPatchWithPassword(encryptedPatch, password);
     
     // 应用解密后的补丁
-    RealHotUpdate hotUpdate = new RealHotUpdate(context);
-    hotUpdate.applyPatch(decryptedPatch, new RealHotUpdate.ApplyCallback() {
+    HotUpdateHelper helper = new HotUpdateHelper(context);
+    helper.applyPatch(decryptedPatch, new HotUpdateHelper.Callback() {
         @Override
         public void onProgress(int percent, String message) {
             Log.d(TAG, message + ": " + percent + "%");
         }
         
         @Override
-        public void onSuccess(RealHotUpdate.PatchResult result) {
+        public void onSuccess(HotUpdateHelper.PatchResult result) {
             Log.i(TAG, "补丁解密并应用成功！");
         }
         
@@ -254,20 +269,18 @@ try {
 ### 1. 应用补丁
 
 ```java
-RealHotUpdate hotUpdate = new RealHotUpdate(context);
-hotUpdate.applyPatch(patchFile, new RealHotUpdate.ApplyCallback() {
+HotUpdateHelper helper = new HotUpdateHelper(context);
+helper.applyPatch(patchFile, new HotUpdateHelper.Callback() {
     @Override
     public void onProgress(int percent, String message) {
         Log.d(TAG, message + ": " + percent + "%");
     }
     
     @Override
-    public void onSuccess(RealHotUpdate.PatchResult result) {
+    public void onSuccess(HotUpdateHelper.PatchResult result) {
         Log.i(TAG, "热更新成功！");
-        Log.i(TAG, "新版本: " + result.newVersion);
-        Log.i(TAG, "DEX 注入: " + result.dexInjected);
-        Log.i(TAG, "SO 加载: " + result.soLoaded);
-        Log.i(TAG, "资源加载: " + result.resourcesLoaded);
+        Log.i(TAG, "补丁版本: " + result.patchVersion);
+        Log.i(TAG, "补丁大小: " + result.patchSize + " 字节");
         
         if (result.needsRestart) {
             // 提示用户重启应用（仅资源更新需要）
@@ -306,8 +319,8 @@ try {
     Log.i(TAG, "解密成功: " + decryptedPatch.getPath());
     
     // 应用解密后的补丁
-    RealHotUpdate hotUpdate = new RealHotUpdate(context);
-    hotUpdate.applyPatch(decryptedPatch, callback);
+    HotUpdateHelper helper = new HotUpdateHelper(context);
+    helper.applyPatch(decryptedPatch, callback);
     
 } catch (SecurityException e) {
     Log.e(TAG, "解密失败: " + e.getMessage());
@@ -323,18 +336,18 @@ try {
 Demo 应用会自动检测 `.enc` 文件并弹出密码输入对话框，这只是为了演示方便：
 
 ```java
-RealHotUpdate hotUpdate = new RealHotUpdate(context);
+HotUpdateHelper helper = new HotUpdateHelper(context);
 
 // Demo 应用会自动检测 .enc 扩展名
 File encryptedPatch = new File("/path/to/patch.zip.enc");
-hotUpdate.applyPatch(encryptedPatch, new RealHotUpdate.ApplyCallback() {
+helper.applyPatch(encryptedPatch, new HotUpdateHelper.Callback() {
     @Override
     public void onProgress(int percent, String message) {
         Log.d(TAG, message + ": " + percent + "%");
     }
     
     @Override
-    public void onSuccess(RealHotUpdate.PatchResult result) {
+    public void onSuccess(HotUpdateHelper.PatchResult result) {
         Log.i(TAG, "补丁应用成功！");
     }
     
@@ -364,7 +377,7 @@ try {
     Log.i(TAG, "解密成功: " + decryptedPatch.getPath());
     
     // 然后应用解密后的补丁
-    hotUpdate.applyPatch(decryptedPatch, callback);
+    helper.applyPatch(decryptedPatch, callback);
     
 } catch (SecurityException e) {
     Log.e(TAG, "解密失败: " + e.getMessage());
@@ -385,8 +398,8 @@ if (securityManager.verifySignature(patchFile, signature)) {
     Log.i(TAG, "签名验证通过");
     
     // 应用补丁
-    RealHotUpdate hotUpdate = new RealHotUpdate(context);
-    hotUpdate.applyPatch(patchFile, callback);
+    HotUpdateHelper helper = new HotUpdateHelper(context);
+    helper.applyPatch(patchFile, callback);
 } else {
     Log.e(TAG, "签名验证失败，拒绝应用补丁");
 }
@@ -414,10 +427,15 @@ String password = getPasswordFromConfig(); // 从配置获取密码
 File decryptedPatch = securityManager.decryptPatchWithPassword(encryptedPatch, password);
 
 // 3. 应用补丁
-RealHotUpdate hotUpdate = new RealHotUpdate(context);
-hotUpdate.applyPatch(decryptedPatch, new RealHotUpdate.ApplyCallback() {
+HotUpdateHelper helper = new HotUpdateHelper(context);
+helper.applyPatch(decryptedPatch, new HotUpdateHelper.Callback() {
     @Override
-    public void onSuccess(RealHotUpdate.PatchResult result) {
+    public void onProgress(int percent, String message) {
+        Log.d(TAG, message + ": " + percent + "%");
+    }
+    
+    @Override
+    public void onSuccess(HotUpdateHelper.PatchResult result) {
         Log.i(TAG, "补丁验证、解密并应用成功！");
     }
     
@@ -432,11 +450,11 @@ hotUpdate.applyPatch(decryptedPatch, new RealHotUpdate.ApplyCallback() {
 
 ```java
 // 简单回滚
-RealHotUpdate hotUpdate = new RealHotUpdate(context);
-hotUpdate.clearPatch();
+HotUpdateHelper helper = new HotUpdateHelper(context);
+helper.clearPatch();
 
 // 清除并重启
-hotUpdate.clearPatch();
+helper.clearPatch();
 Intent intent = context.getPackageManager()
     .getLaunchIntentForPackage(context.getPackageName());
 if (intent != null) {
@@ -459,10 +477,15 @@ securityPrefs.edit()
     .apply();
 
 // 应用补丁时会自动检查安全策略
-RealHotUpdate hotUpdate = new RealHotUpdate(context);
-hotUpdate.applyPatch(patchFile, new RealHotUpdate.ApplyCallback() {
+HotUpdateHelper helper = new HotUpdateHelper(context);
+helper.applyPatch(patchFile, new HotUpdateHelper.Callback() {
     @Override
-    public void onSuccess(RealHotUpdate.PatchResult result) {
+    public void onProgress(int percent, String message) {
+        Log.d(TAG, message + ": " + percent + "%");
+    }
+    
+    @Override
+    public void onSuccess(HotUpdateHelper.PatchResult result) {
         Log.i(TAG, "补丁应用成功");
     }
     
@@ -546,8 +569,8 @@ public class MyApplication extends Application {
         super.attachBaseContext(base);
         
         // 加载已应用的补丁
-        RealHotUpdate hotUpdate = new RealHotUpdate(this);
-        hotUpdate.loadAppliedPatch();
+        HotUpdateHelper helper = new HotUpdateHelper(this);
+        helper.loadAppliedPatch();
     }
     
     @Override

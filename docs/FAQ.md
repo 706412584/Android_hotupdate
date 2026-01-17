@@ -209,8 +209,8 @@ String password = getPasswordFromConfig(); // 从配置或安全存储获取
 File decryptedPatch = securityManager.decryptPatchWithPassword(encryptedPatch, password);
 
 // 然后应用解密后的补丁
-RealHotUpdate hotUpdate = new RealHotUpdate(context);
-hotUpdate.applyPatch(decryptedPatch, callback);
+HotUpdateHelper helper = new HotUpdateHelper(context);
+helper.applyPatch(decryptedPatch, callback);
 ```
 
 **注意：**

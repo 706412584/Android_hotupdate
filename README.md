@@ -29,7 +29,21 @@
 
 ## 🚀 快速开始
 
-### 方式一：使用 JitPack（推荐）
+### 方式一：使用 Maven Central（推荐）
+
+**1. 添加依赖**
+
+```groovy
+dependencies {
+    // 热更新核心库（包含完整功能）
+    implementation 'io.github.706412584:update:1.3.0'
+    
+    // 如果需要在设备上生成补丁，添加：
+    implementation 'io.github.706412584:patch-generator-android:1.3.0'
+}
+```
+
+### 方式二：使用 JitPack
 
 **1. 添加 JitPack 仓库**
 
@@ -49,11 +63,11 @@ dependencyResolutionManagement {
 
 ```groovy
 dependencies {
-    // 补丁生成 SDK
-    implementation 'com.github.706412584.Android_hotupdate:patch-generator-android:v1.2.9'
-    
     // 热更新 SDK
-    implementation 'com.github.706412584.Android_hotupdate:update:v1.2.9'
+    implementation 'com.github.706412584.Android_hotupdate:update:v1.3.0'
+    
+    // 补丁生成 SDK（可选）
+    implementation 'com.github.706412584.Android_hotupdate:patch-generator-android:v1.3.0'
 }
 ```
 
@@ -79,12 +93,21 @@ generator.generateInBackground();
 
 **4. 应用补丁**
 
+使用 `update` 模块中的核心类：
+
 ```java
-RealHotUpdate hotUpdate = new RealHotUpdate(context);
-hotUpdate.applyPatch(patchFile, new RealHotUpdate.ApplyCallback() {
+// 方式一：使用 HotUpdateHelper（推荐 - 最简单）
+HotUpdateHelper helper = new HotUpdateHelper(context);
+helper.applyPatch(patchFile, new HotUpdateHelper.Callback() {
     @Override
-    public void onSuccess(RealHotUpdate.PatchResult result) {
+    public void onProgress(int percent, String message) {
+        Log.d(TAG, "进度: " + percent + "% - " + message);
+    }
+    
+    @Override
+    public void onSuccess(HotUpdateHelper.PatchResult result) {
         Log.i(TAG, "热更新成功！");
+        Log.i(TAG, "补丁版本: " + result.patchVersion);
         // DEX 和 SO 立即生效
         // 资源更新需要重启应用
     }
@@ -94,7 +117,85 @@ hotUpdate.applyPatch(patchFile, new RealHotUpdate.ApplyCallback() {
         Log.e(TAG, "热更新失败: " + message);
     }
 });
+
+// 方式二：使用 PatchApplier（更灵活的控制）
+PatchApplier patchApplier = new PatchApplier(context, new PatchStorage(context));
+
+// 创建 PatchInfo（从本地文件）
+PatchInfo patchInfo = new PatchInfo();
+patchInfo.setPatchId("patch_001");
+patchInfo.setPatchVersion("1.3.0");
+patchInfo.setDownloadUrl("file://" + patchFile.getAbsolutePath());
+patchInfo.setMd5(Md5Utils.calculateMd5(patchFile));
+
+// 应用补丁
+boolean success = patchApplier.apply(patchInfo);
+if (success) {
+    Log.i(TAG, "热更新成功！");
+} else {
+    Log.e(TAG, "热更新失败");
+}
+
+// 方式三：直接使用底层 API（最灵活）
+// 1. 注入 DEX 补丁
+if (DexPatcher.isSupported()) {
+    try {
+        DexPatcher.injectPatchDex(context, dexFile.getAbsolutePath());
+        Log.i(TAG, "DEX 补丁注入成功");
+    } catch (DexPatcher.PatchException e) {
+        Log.e(TAG, "DEX 注入失败", e);
+    }
+}
+
+// 2. 加载 SO 库补丁
+try {
+    SoPatcher.loadPatchLibraries(context, patchFile);
+    Log.i(TAG, "SO 库加载成功");
+} catch (SoPatcher.PatchSoException e) {
+    Log.e(TAG, "SO 加载失败", e);
+}
+
+// 3. 加载资源补丁
+try {
+    ResourcePatcher.loadPatchResources(context, resourceFile.getAbsolutePath());
+    Log.i(TAG, "资源补丁加载成功");
+} catch (ResourcePatcher.PatchResourceException e) {
+    Log.e(TAG, "资源加载失败", e);
+}
+
+// 方式四：使用 UpdateManager（服务器端更新流程）
+// 适用于从服务器检查更新、下载补丁的场景
+UpdateConfig config = new UpdateConfig.Builder()
+    .serverUrl("https://your-server.com/api")
+    .appKey("your-app-key")
+    .appVersion("1.0.0")
+    .build();
+
+UpdateManager.init(context, config);
+UpdateManager.getInstance().setCallback(new SimpleUpdateCallback() {
+    @Override
+    public void onCheckComplete(boolean hasUpdate, PatchInfo patchInfo) {
+        if (hasUpdate) {
+            // 下载并应用补丁
+            UpdateManager.getInstance().downloadPatch(patchInfo);
+        }
+    }
+    
+    @Override
+    public void onDownloadComplete(PatchInfo patchInfo) {
+        // 应用补丁
+        UpdateManager.getInstance().applyPatch(patchInfo);
+    }
+});
+
+UpdateManager.getInstance().checkUpdate();
 ```
+
+> **注意**：
+> - `HotUpdateHelper` 是推荐的高层 API，提供简单的回调接口
+> - `PatchApplier` 提供更灵活的控制
+> - `RealHotUpdate` 是 demo 应用中的示例封装类，展示了如何组合使用这些核心 API
+> - 你可以参考它的实现（`app/src/main/java/com/orange/update/RealHotUpdate.java`）来创建自己的封装
 
 **5. 在 Application 中集成**
 
@@ -104,9 +205,20 @@ public class MyApplication extends Application {
     protected void attachBaseContext(Context base) {
         super.attachBaseContext(base);
         
-        // 加载已应用的补丁
-        RealHotUpdate hotUpdate = new RealHotUpdate(this);
-        hotUpdate.loadAppliedPatch();
+        // 方式一：使用 HotUpdateHelper（推荐 - 最简单）
+        HotUpdateHelper helper = new HotUpdateHelper(this);
+        helper.loadAppliedPatch();
+        
+        // 方式二：使用 PatchApplier
+        // PatchApplier patchApplier = new PatchApplier(this, new PatchStorage(this));
+        // patchApplier.loadAppliedPatch();
+        
+        // 方式三：使用 UpdateManager（服务器端更新流程）
+        // UpdateManager.getInstance().loadAppliedPatch();
+        
+        // 方式四：参考 demo 中的 RealHotUpdate 封装类
+        // RealHotUpdate hotUpdate = new RealHotUpdate(this);
+        // hotUpdate.loadAppliedPatch();
     }
 }
 ```
@@ -184,9 +296,21 @@ try {
         decryptedPatch = securityManager.decryptPatch(encryptedPatch);
     }
     
-    // 应用解密后的补丁
-    RealHotUpdate hotUpdate = new RealHotUpdate(context);
-    hotUpdate.applyPatch(decryptedPatch, callback);
+    // 应用解密后的补丁（使用 PatchApplier）
+    PatchApplier patchApplier = new PatchApplier(context, new PatchStorage(context));
+    
+    // 创建 PatchInfo
+    PatchInfo patchInfo = new PatchInfo();
+    patchInfo.setPatchId("patch_001");
+    patchInfo.setPatchVersion("1.3.0");
+    patchInfo.setDownloadUrl("file://" + decryptedPatch.getAbsolutePath());
+    patchInfo.setMd5(Md5Utils.calculateMd5(decryptedPatch));
+    
+    // 应用补丁
+    boolean success = patchApplier.apply(patchInfo);
+    if (success) {
+        Log.i(TAG, "补丁应用成功");
+    }
     
 } catch (SecurityException e) {
     Log.e(TAG, "解密失败: " + e.getMessage());
@@ -231,8 +355,21 @@ if (!securityManager.verifySignature(encryptedPatch, signature)) {
 String password = getPasswordFromConfig(); // 从配置获取密码
 File decryptedPatch = securityManager.decryptPatchWithPassword(encryptedPatch, password);
 
-RealHotUpdate hotUpdate = new RealHotUpdate(context);
-hotUpdate.applyPatch(decryptedPatch, callback);
+// 应用解密后的补丁（使用 PatchApplier）
+PatchApplier patchApplier = new PatchApplier(context, new PatchStorage(context));
+
+// 创建 PatchInfo
+PatchInfo patchInfo = new PatchInfo();
+patchInfo.setPatchId("patch_001");
+patchInfo.setPatchVersion("1.3.0");
+patchInfo.setDownloadUrl("file://" + decryptedPatch.getAbsolutePath());
+patchInfo.setMd5(Md5Utils.calculateMd5(decryptedPatch));
+
+// 应用补丁
+boolean success = patchApplier.apply(patchInfo);
+if (success) {
+    Log.i(TAG, "补丁应用成功");
+}
 ```
 
 **9. 配置安全策略（Demo 应用功能）**
@@ -371,15 +508,20 @@ adb install test-apks/app-v1.0-dex-res.apk
 如果需要回滚到原始版本：
 
 ```java
-// 方式一：简单回滚
-RealHotUpdate hotUpdate = new RealHotUpdate(context);
-hotUpdate.clearPatch();
+// 方式一：使用 HotUpdateHelper（推荐 - 最简单）
+HotUpdateHelper helper = new HotUpdateHelper(context);
+helper.clearPatch();
 Toast.makeText(context, "补丁已清除，请重启应用", Toast.LENGTH_LONG).show();
 
-// 方式二：清除并自动重启
-RealHotUpdate hotUpdate = new RealHotUpdate(context);
-hotUpdate.clearPatch();
+// 方式二：使用 PatchStorage
+// PatchStorage patchStorage = new PatchStorage(context);
+// patchStorage.clearPatch();
 
+// 方式三：参考 demo 中的 RealHotUpdate 实现
+// RealHotUpdate hotUpdate = new RealHotUpdate(context);
+// hotUpdate.clearPatch();
+
+// 清除并自动重启应用
 Intent intent = context.getPackageManager()
     .getLaunchIntentForPackage(context.getPackageName());
 if (intent != null) {
