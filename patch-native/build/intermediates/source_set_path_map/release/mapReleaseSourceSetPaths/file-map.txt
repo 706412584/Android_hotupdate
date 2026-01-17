@@ -1,0 +1,7 @@
+com.orange.patchnative.patch-native-pngs-0 D:\android\projecet_iade\androidhotupdate\patch-native\build\generated\res\pngs\release
+com.orange.patchnative.patch-native-resValues-1 D:\android\projecet_iade\androidhotupdate\patch-native\build\generated\res\resValues\release
+com.orange.patchnative.patch-native-mergeReleaseResources-2 D:\android\projecet_iade\androidhotupdate\patch-native\build\intermediates\incremental\release\mergeReleaseResources\merged.dir
+com.orange.patchnative.patch-native-mergeReleaseResources-3 D:\android\projecet_iade\androidhotupdate\patch-native\build\intermediates\incremental\release\mergeReleaseResources\stripped.dir
+com.orange.patchnative.patch-native-release-4 D:\android\projecet_iade\androidhotupdate\patch-native\build\intermediates\merged_res\release\mergeReleaseResources
+com.orange.patchnative.patch-native-main-5 D:\android\projecet_iade\androidhotupdate\patch-native\src\main\res
+com.orange.patchnative.patch-native-release-6 D:\android\projecet_iade\androidhotupdate\patch-native\src\release\res

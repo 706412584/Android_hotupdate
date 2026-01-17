@@ -101,6 +101,22 @@
 
 ## 性能相关
 
+### Q: JitPack版本包含Native加速吗？
+**A:** 是的！JitPack版本包含预编译的Native SO库：
+- ✅ 自动包含4个ABI的SO库（arm64-v8a, armeabi-v7a, x86, x86_64）
+- ✅ 补丁生成速度提升2-3倍
+- ✅ 如果Native库加载失败，自动降级到Java引擎
+- ✅ 无需额外配置，开箱即用
+
+**验证Native引擎是否可用：**
+```java
+if (NativePatchEngine.isAvailable()) {
+    Log.i(TAG, "Native引擎可用，性能最佳");
+} else {
+    Log.i(TAG, "使用Java引擎，功能完整");
+}
+```
+
 ### Q: Native 引擎和 Java 引擎有什么区别？
 **A:**
 - **Native 引擎**: 使用 C/C++ 实现，性能更高，速度快 2-3 倍

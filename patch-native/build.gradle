@@ -49,6 +49,15 @@ android {
         }
     }
 
+    // 在JitPack环境使用预编译的SO库
+    sourceSets {
+        main {
+            if (System.getenv("JITPACK") == "true") {
+                jniLibs.srcDirs = ['prebuilt/jniLibs']
+            }
+        }
+    }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11

@@ -64,3 +64,17 @@
 0	7	0	clean	92461c1b6eb3726a
 0	7	0	clean	92461c1b6eb3726a
 0	7	0	clean	92461c1b6eb3726a
+20	90	7903292463119902	CMakeFiles/patchengine.dir/third_party/bzip2/randtable.c.o	9975162b84256791
+24	92	7903292463129962	CMakeFiles/patchengine.dir/third_party/bzip2/crctable.c.o	f2c1263d43644c57
+34	121	7903292463336724	CMakeFiles/patchengine.dir/third_party/bzip2/decompress.c.o	8267107dd36eec0a
+4	158	7903292463716705	CMakeFiles/patchengine.dir/third_party/bzip2/huffman.c.o	1429532504ff7c20
+41	159	7903292463726710	CMakeFiles/patchengine.dir/third_party/bzip2/bzlib.c.o	5db4a872048a4c5e
+8	173	7903292463876722	CMakeFiles/patchengine.dir/third_party/bzip2/blocksort.c.o	2f9462b3e1a524d5
+80	173	7903292463886741	CMakeFiles/patchengine.dir/src/compress.cpp.o	726b0dbba918949d
+75	175	7903292463956474	CMakeFiles/patchengine.dir/src/bspatch.c.o	6eda13ae9d966065
+45	219	7903292464327592	CMakeFiles/patchengine.dir/src/bsdiff.c.o	8a3cb00009d685c8
+12	236	7903292464507662	CMakeFiles/patchengine.dir/third_party/bzip2/compress.c.o	787d3837a8650541
+69	286	7903292464937664	CMakeFiles/patchengine.dir/src/hash.cpp.o	b5fb106e45a7f66b
+51	544	7903292467489054	CMakeFiles/patchengine.dir/src/patch_engine.cpp.o	5c7808156014af05
+60	559	7903292467616027	CMakeFiles/patchengine.dir/src/patch_engine_jni.cpp.o	cfb03171df33f9bd
+559	944	7903292471637219	D:/android/projecet_iade/androidhotupdate/patch-native/build/intermediates/cxx/RelWithDebInfo/1716y6dg/obj/armeabi-v7a/libpatchengine.so	b3da14fc848fc96f

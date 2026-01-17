@@ -1,0 +1,33 @@
+ninja: Entering directory `D:\android\projecet_iade\androidhotupdate\patch-native\.cxx\RelWithDebInfo\1716y6dg\x86'
+[1/14] Building C object CMakeFiles/patchengine.dir/third_party/bzip2/crctable.c.o
+[2/14] Building C object CMakeFiles/patchengine.dir/third_party/bzip2/randtable.c.o
+[3/14] Building C object CMakeFiles/patchengine.dir/third_party/bzip2/decompress.c.o
+[4/14] Building CXX object CMakeFiles/patchengine.dir/src/compress.cpp.o
+[5/14] Building C object CMakeFiles/patchengine.dir/src/bspatch.c.o
+[6/14] Building C object CMakeFiles/patchengine.dir/third_party/bzip2/huffman.c.o
+[7/14] Building C object CMakeFiles/patchengine.dir/third_party/bzip2/bzlib.c.o
+D:/android/projecet_iade/androidhotupdate/patch-native/src/main/cpp/third_party/bzip2/bzlib.c:232:55: warning: self-comparison always evaluates to false [-Wtautological-compare]
+  232 |          while (strm->avail_out > 0 && s->nblock_used < s->nblock_used) {
+      |                                                       ^
+D:/android/projecet_iade/androidhotupdate/patch-native/src/main/cpp/third_party/bzip2/bzlib.c:239:29: warning: self-comparison always evaluates to true [-Wtautological-compare]
+  239 |          if (s->nblock_used >= s->nblock_used) {
+      |                             ^
+D:/android/projecet_iade/androidhotupdate/patch-native/src/main/cpp/third_party/bzip2/bzlib.c:38:13: warning: unused function 'isempty_RL' [-Wunused-function]
+   38 | static Bool isempty_RL(EState* s) {
+      |             ^~~~~~~~~~
+3 warnings generated.
+[8/14] Building C object CMakeFiles/patchengine.dir/third_party/bzip2/blocksort.c.o
+D:/android/projecet_iade/androidhotupdate/patch-native/src/main/cpp/third_party/bzip2/blocksort.c:225:12: warning: variable 'quadrant' set but not used [-Wunused-but-set-variable]
+  225 |    UInt16* quadrant;
+      |            ^
+1 warning generated.
+[9/14] Building C object CMakeFiles/patchengine.dir/src/bsdiff.c.o
+[10/14] Building CXX object CMakeFiles/patchengine.dir/src/hash.cpp.o
+[11/14] Building C object CMakeFiles/patchengine.dir/third_party/bzip2/compress.c.o
+D:/android/projecet_iade/androidhotupdate/patch-native/src/main/cpp/third_party/bzip2/compress.c:124:24: warning: variable 'totc' set but not used [-Wunused-but-set-variable]
+  124 |    Int32 i, j, gs, ge, totc, bt, bc, iter;
+      |                        ^
+1 warning generated.
+[12/14] Building CXX object CMakeFiles/patchengine.dir/src/patch_engine_jni.cpp.o
+[13/14] Building CXX object CMakeFiles/patchengine.dir/src/patch_engine.cpp.o
+[14/14] Linking CXX shared library D:\android\projecet_iade\androidhotupdate\patch-native\build\intermediates\cxx\RelWithDebInfo\1716y6dg\obj\x86\libpatchengine.so
