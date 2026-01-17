@@ -728,7 +728,7 @@ java -jar patch-cli/build/libs/patch-cli.jar \
 // 项目根目录 build.gradle
 buildscript {
     dependencies {
-        classpath 'com.github.706412584.Android_hotupdate:patch-gradle-plugin:vv1.2.5'
+        classpath 'com.github.706412584.Android_hotupdate:patch-gradle-plugin:v1.2.5'
     }
 }
 

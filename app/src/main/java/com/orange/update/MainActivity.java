@@ -187,7 +187,7 @@ public class MainActivity extends AppCompatActivity {
      * v1.2 更新后的方法
      */
     private String getHotUpdateTestInfo() {
-        return "🔥 热更新测试 v1.2 - 补丁已生效！代码已更新！";
+        return "🔥🔥🔥 热更新测试 v1.2 - 补丁已生效！代码已更新！🔥🔥🔥";
     }
 
     private void showSystemInfo() {
