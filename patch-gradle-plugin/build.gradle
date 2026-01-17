@@ -37,7 +37,7 @@ publishing {
         pluginMaven(MavenPublication) {
             groupId = 'com.orange.patch'
             artifactId = 'patch-gradle-plugin'
-            version = '1.2.7'
+            version = '1.2.8'
         }
     }
     repositories {

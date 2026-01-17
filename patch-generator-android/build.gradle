@@ -57,7 +57,7 @@ afterEvaluate {
     publishing {
         publications {
             release(MavenPublication) {
-                from components.release
+                from components.getByName("release")
                 groupId = 'com.github.706412584'
                 artifactId = 'patch-generator-android'
                 version = '1.2.8'
