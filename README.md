@@ -76,7 +76,84 @@
    - 点击「应用补丁」
    - 热更新立即生效，无需重启
 
-### 方式二：命令行生成补丁
+### 方式二：通过 JitPack 集成（推荐）
+
+[![](https://jitpack.io/v/706412584/Android_hotupdate.svg)](https://jitpack.io/#706412584/Android_hotupdate)
+
+**步骤 1：添加 JitPack 仓库**
+
+在项目根目录的 `settings.gradle` 中添加：
+
+```groovy
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://jitpack.io' }  // 添加 JitPack
+    }
+}
+```
+
+或在旧版本的 `build.gradle` 中添加：
+
+```groovy
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://jitpack.io' }
+    }
+}
+```
+
+**步骤 2：添加依赖**
+
+在 app 模块的 `build.gradle` 中添加：
+
+```groovy
+dependencies {
+    // 补丁生成 SDK（包含 patch-core 和 patch-native）
+    implementation 'com.github.706412584.Android_hotupdate:patch-generator-android:1.2.0'
+    
+    // 热更新 SDK
+    implementation 'com.github.706412584.Android_hotupdate:update:1.2.0'
+}
+```
+
+**如果只需要特定模块：**
+
+```groovy
+dependencies {
+    // 仅核心库
+    implementation 'com.github.706412584.Android_hotupdate:patch-core:1.2.0'
+    
+    // 仅 Native 引擎
+    implementation 'com.github.706412584.Android_hotupdate:patch-native:1.2.0'
+    
+    // 仅热更新 SDK
+    implementation 'com.github.706412584.Android_hotupdate:update:1.2.0'
+}
+```
+
+**步骤 3：使用示例**
+
+```java
+// 生成补丁
+AndroidPatchGenerator generator = new AndroidPatchGenerator.Builder(context)
+    .baseApk(baseApkFile)
+    .newApk(newApkFile)
+    .output(patchFile)
+    .callback(callback)
+    .build();
+generator.generateInBackground();
+
+// 应用补丁
+RealHotUpdate hotUpdate = new RealHotUpdate(context);
+hotUpdate.applyPatch(patchFile, callback);
+```
+
+### 方式三：命令行生成补丁
 
 ```bash
 # 编译命令行工具
@@ -90,7 +167,7 @@ java -jar patch-cli/build/libs/patch-cli.jar \
 ```
 
 
-### 方式三：Gradle 插件集成
+### 方式四：Gradle 插件集成
 
 ```groovy
 // 项目根目录 build.gradle
@@ -116,7 +193,7 @@ patchGenerator {
 ./gradlew generateReleasePatch
 ```
 
-### 方式四：Android SDK 集成
+### 方式五：Android SDK 集成（本地模块）
 
 ```java
 // 1. 添加依赖
