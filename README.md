@@ -183,7 +183,7 @@ if (intent != null) {
 **A:** 支持 Android 5.0+ (API 21+)，推荐 Android 7.0+ (API 24+)
 
 ### Q: 可以热更新 AndroidManifest.xml 吗？
-**A:** 不可以，这是 Tinker 的限制，需要重新安装 APK
+**A:** 不可以，这是 安卓机制 的限制，需要重新安装 APK
 
 ### Q: 资源更新为什么需要重启？
 **A:** 资源需要重新加载到 AssetManager，需要重启 Activity 才能看到新界面
