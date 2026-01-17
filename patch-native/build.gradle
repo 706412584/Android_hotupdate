@@ -87,7 +87,7 @@ afterEvaluate {
                 from components.findByName("release")
                 groupId = 'com.github.706412584'
                 artifactId = 'patch-native'
-                version = '1.2.3'
+                version = '1.2.4'
             }
         }
     }
