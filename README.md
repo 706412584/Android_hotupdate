@@ -49,10 +49,10 @@ dependencyResolutionManagement {
 ```groovy
 dependencies {
     // 补丁生成 SDK
-    implementation 'com.github.706412584.Android_hotupdate:patch-generator-android:1.2.4'
+    implementation 'com.github.706412584.Android_hotupdate:patch-generator-android:v1.2.4'
     
     // 热更新 SDK
-    implementation 'com.github.706412584.Android_hotupdate:update:1.2.4'
+    implementation 'com.github.706412584.Android_hotupdate:update:v1.2.4'
 }
 ```
 
