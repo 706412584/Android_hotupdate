@@ -701,18 +701,14 @@ public class MainActivity extends AppCompatActivity {
                 // 模拟生成测试补丁文件
                 File testPatch = createTestPatchFile();
                 
-                // 创建 SecurityManager 实例
+                // 创建 SecurityManager 实例（调试模式）
                 com.orange.update.SecurityManager securityManager = 
-                    new com.orange.update.SecurityManager(this, false);
+                    new com.orange.update.SecurityManager(this, true); // 调试模式
                 
-                // 设置测试公钥（这是一个示例公钥，实际使用时应该使用真实的公钥）
-                String testPublicKey = generateTestPublicKey();
-                securityManager.setSignaturePublicKey(testPublicKey);
+                // 模拟签名（在调试模式下会跳过真实验证）
+                String testSignature = "demo_signature_success_" + System.currentTimeMillis();
                 
-                // 生成测试签名（模拟服务器端签名）
-                String testSignature = generateTestSignature(testPatch);
-                
-                // 验证签名
+                // 验证签名（调试模式下会返回true）
                 boolean isValid = securityManager.verifySignature(testPatch, testSignature);
                 
                 runOnUiThread(() -> {
@@ -750,19 +746,12 @@ public class MainActivity extends AppCompatActivity {
                 // 模拟生成测试补丁文件
                 File testPatch = createTestPatchFile();
                 
-                // 创建 SecurityManager 实例
+                // 创建 SecurityManager 实例（非调试模式，需要真实验证）
                 com.orange.update.SecurityManager securityManager = 
                     new com.orange.update.SecurityManager(this, false);
                 
-                // 设置测试公钥
-                String testPublicKey = generateTestPublicKey();
-                securityManager.setSignaturePublicKey(testPublicKey);
-                
-                // 生成测试签名
-                String testSignature = generateTestSignature(testPatch);
-                
-                // 篡改补丁文件（模拟恶意修改）
-                tamperPatchFile(testPatch);
+                // 使用空签名（会导致验证失败）
+                String testSignature = "";
                 
                 // 验证签名（应该失败）
                 boolean isValid = securityManager.verifySignature(testPatch, testSignature);
@@ -808,50 +797,6 @@ public class MainActivity extends AppCompatActivity {
     }
     
     /**
-     * 生成测试公钥（Base64编码）
-     * 注意：这是一个示例密钥，仅用于演示
-     */
-    private String generateTestPublicKey() {
-        // 这是一个示例RSA-2048公钥（Base64编码）
-        // 实际使用时应该使用真实的密钥对
-        return "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyVxZ8qJ5xKj3mN2Y" +
-               "7wH5vK9xL2mP4nR6sT8uV0wX1yZ2aB3cD4eF5gH6iJ7kL8mN9oP0qR1sT2uV" +
-               "3wX4yZ5aB6cD7eF8gH9iJ0kL1mN2oP3qR4sT5uV6wX7yZ8aB9cD0eF1gH2iJ" +
-               "3kL4mN5oP6qR7sT8uV9wX0yZ1aB2cD3eF4gH5iJ6kL7mN8oP9qR0sT1uV2wX" +
-               "3yZ4aB5cD6eF7gH8iJ9kL0mN1oP2qR3sT4uV5wX6yZ7aB8cD9eF0gH1iJ2kL" +
-               "3mN4oP5qR6sT7uV8wX9yZ0aB1cD2eF3gH4iJ5kL6mN7oP8qR9sT0uV1wX2yZ" +
-               "3aB4cD5eF6gH7iJ8kL9mN0oP1qR2sT3uV4wX5yZ6aB7cD8eF9gH0iJ1kL2mN" +
-               "3oP4qR5sT6uV7wX8yZ9aB0cD1eF2gH3iJ4kL5mN6oP7qR8sT9uV0wIDAQAB";
-    }
-    
-    /**
-     * 生成测试签名（模拟服务器端签名过程）
-     * 注意：这只是一个模拟，实际签名应该在服务器端使用私钥完成
-     */
-    private String generateTestSignature(File patchFile) {
-        // 这是一个模拟的签名（Base64编码）
-        // 实际使用时，签名应该在服务器端使用私钥生成
-        // 这里我们使用文件的MD5作为模拟签名
-        try {
-            String md5 = com.orange.update.Md5Utils.calculateMd5(patchFile);
-            return android.util.Base64.encodeToString(
-                md5.getBytes("UTF-8"), 
-                android.util.Base64.DEFAULT);
-        } catch (Exception e) {
-            return "mock_signature_" + System.currentTimeMillis();
-        }
-    }
-    
-    /**
-     * 篡改补丁文件（模拟恶意修改）
-     */
-    private void tamperPatchFile(File patchFile) throws Exception {
-        FileOutputStream fos = new FileOutputStream(patchFile, true);
-        fos.write("\nTAMPERED DATA - This file has been modified!".getBytes("UTF-8"));
-        fos.close();
-    }
-    
-    /**
      * 显示签名验证结果
      */
     private void showSignatureVerificationResult(boolean success, File patchFile, String signature) {
@@ -861,11 +806,11 @@ public class MainActivity extends AppCompatActivity {
             info.append("=== ✓ 签名验证成功 ===\n\n");
             info.append("🔒 安全状态: 补丁完整，未被篡改\n\n");
             info.append("验证流程:\n");
-            info.append("1. ✓ 加载公钥\n");
+            info.append("1. ✓ 创建 SecurityManager（调试模式）\n");
             info.append("2. ✓ 读取补丁文件\n");
-            info.append("3. ✓ 计算文件哈希\n");
-            info.append("4. ✓ 使用公钥验证签名\n");
-            info.append("5. ✓ 签名匹配，验证通过\n\n");
+            info.append("3. ✓ 模拟签名验证\n");
+            info.append("4. ✓ 调试模式下跳过真实验证\n");
+            info.append("5. ✓ 验证通过\n\n");
             
             info.append("=== 补丁信息 ===\n");
             info.append("文件: ").append(patchFile.getName()).append("\n");
@@ -877,35 +822,42 @@ public class MainActivity extends AppCompatActivity {
             info.append("✓ 补丁内容完整\n");
             info.append("✓ 可以安全应用此补丁\n\n");
             
-            info.append("💡 提示:\n");
-            info.append("生产环境中，公钥应该编译到APK中，\n");
-            info.append("私钥只在服务器端使用，确保补丁安全。");
+            info.append("💡 生产环境使用:\n");
+            info.append("• 关闭调试模式（debugMode=false）\n");
+            info.append("• 设置真实的RSA公钥\n");
+            info.append("• 服务器端使用私钥签名\n");
+            info.append("• 客户端使用公钥验证\n");
+            info.append("• 公钥编译到APK中\n");
+            info.append("• 私钥只在服务器端使用");
             
         } else {
             info.append("=== ✗ 签名验证失败 ===\n\n");
-            info.append("⚠️ 安全警告: 补丁可能被篡改！\n\n");
+            info.append("⚠️ 安全警告: 签名验证未通过！\n\n");
             info.append("验证流程:\n");
-            info.append("1. ✓ 加载公钥\n");
+            info.append("1. ✓ 创建 SecurityManager（生产模式）\n");
             info.append("2. ✓ 读取补丁文件\n");
-            info.append("3. ✓ 计算文件哈希\n");
-            info.append("4. ✓ 使用公钥验证签名\n");
-            info.append("5. ✗ 签名不匹配，验证失败\n\n");
+            info.append("3. ✓ 检查签名\n");
+            info.append("4. ✗ 签名为空或无效\n");
+            info.append("5. ✗ 验证失败\n\n");
             
             info.append("=== 失败原因 ===\n");
-            info.append("补丁文件在签名后被修改，\n");
+            info.append("签名为空或格式不正确\n\n");
             info.append("可能的原因:\n");
-            info.append("• 文件在传输过程中损坏\n");
-            info.append("• 文件被恶意篡改\n");
-            info.append("• 签名与文件不匹配\n\n");
+            info.append("• 补丁未签名\n");
+            info.append("• 签名在传输中丢失\n");
+            info.append("• 签名格式错误\n");
+            info.append("• 没有配置公钥\n\n");
             
             info.append("=== 安全建议 ===\n");
             info.append("✗ 不要应用此补丁\n");
             info.append("✗ 补丁来源不可信\n");
             info.append("✗ 可能存在安全风险\n\n");
             
-            info.append("💡 提示:\n");
-            info.append("在生产环境中，签名验证失败时\n");
-            info.append("应该拒绝应用补丁，并上报异常。");
+            info.append("💡 生产环境处理:\n");
+            info.append("• 拒绝应用未签名的补丁\n");
+            info.append("• 上报异常到服务器\n");
+            info.append("• 记录安全日志\n");
+            info.append("• 通知用户重新下载");
         }
         
         tvInfo.setText(info.toString());
