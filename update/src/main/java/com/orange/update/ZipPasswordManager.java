@@ -77,9 +77,20 @@ public class ZipPasswordManager {
             params.setCompressionMethod(net.lingala.zip4j.model.enums.CompressionMethod.STORE);
             
             ZipFile destZipFile = new ZipFile(destZip, password.toCharArray());
-            destZipFile.addFolder(tempDir, params);
             
-            // 3. 清理临时目录
+            // 3. 逐个添加文件和文件夹（不包含根目录本身）
+            File[] files = tempDir.listFiles();
+            if (files != null) {
+                for (File file : files) {
+                    if (file.isDirectory()) {
+                        destZipFile.addFolder(file, params);
+                    } else {
+                        destZipFile.addFile(file, params);
+                    }
+                }
+            }
+            
+            // 4. 清理临时目录
             deleteDirectory(tempDir);
             
             Log.i(TAG, "ZIP encrypted successfully: " + destZip.getName());
