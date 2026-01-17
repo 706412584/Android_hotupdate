@@ -7,5 +7,5 @@ plugins {
 
 allprojects {
     group = 'com.github.706412584'
-    version = '1.2.7'
+    version = '1.2.8'
 }
