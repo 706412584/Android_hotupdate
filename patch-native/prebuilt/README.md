@@ -41,7 +41,7 @@ jniLibs/
 
 ```groovy
 dependencies {
-    implementation 'com.github.706412584.Android_hotupdate:patch-native:1.2.0'
+    implementation 'com.github.706412584.Android_hotupdate:patch-native:v1.2.4'
 }
 ```
 

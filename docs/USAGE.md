@@ -305,7 +305,7 @@ java -jar patch-cli/build/libs/patch-cli.jar \
 // 项目根目录 build.gradle
 buildscript {
     dependencies {
-        classpath 'com.orange.patch:patch-gradle-plugin:1.0.0'
+        classpath 'com.github.706412584.Android_hotupdate:patch-gradle-plugin:v1.2.4'
     }
 }
 

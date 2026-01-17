@@ -11,7 +11,33 @@ Gradle 插件，集成到 Android 构建流程自动生成补丁。
 
 ## 安装
 
-### 在项目根目录的 build.gradle 中添加
+### 方式一：使用 JitPack（推荐）
+
+在项目根目录的 `settings.gradle` 中添加 JitPack 仓库：
+
+```groovy
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://jitpack.io' }
+    }
+}
+```
+
+在项目根目录的 `build.gradle` 中添加插件依赖：
+
+```groovy
+buildscript {
+    dependencies {
+        classpath 'com.github.706412584.Android_hotupdate:patch-gradle-plugin:v1.2.4'
+    }
+}
+```
+
+### 方式二：使用本地项目依赖
+
+在项目根目录的 `build.gradle` 中添加：
 
 ```groovy
 buildscript {

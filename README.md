@@ -20,6 +20,7 @@
 ## 📚 文档导航
 
 - **[快速开始](#-快速开始)** - 5 分钟上手
+- **[签名验证](#6-使用签名验证可选推荐生产环境使用)** - 保护补丁安全
 - **[Demo 下载](https://github.com/706412584/Android_hotupdate/releases/tag/demo)** - 下载体验 APK
 - **[详细使用文档](docs/USAGE.md)** - 完整的使用说明
 - **[常见问题](docs/FAQ.md)** - 问题排查指南
@@ -110,6 +111,94 @@ public class MyApplication extends Application {
 }
 ```
 
+**6. 使用签名验证（可选，推荐生产环境使用）**
+
+为了防止补丁被篡改，可以启用签名验证：
+
+```java
+// 步骤 1: 生成 RSA 密钥对（在开发机器上执行一次）
+// 使用 keytool 或 openssl 生成密钥对
+// keytool -genkeypair -alias patch_key -keyalg RSA -keysize 2048 -validity 10000 -keystore patch.keystore
+
+// 步骤 2: 导出公钥（Base64 格式）
+// keytool -exportcert -alias patch_key -keystore patch.keystore -rfc -file public_key.pem
+// 然后将 PEM 文件转换为 Base64 字符串
+
+// 步骤 3: 在应用中配置公钥
+SecurityManager securityManager = new SecurityManager(context);
+String publicKeyBase64 = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA..."; // 你的公钥
+securityManager.setSignaturePublicKey(publicKeyBase64);
+
+// 步骤 4: 生成补丁时签名（在服务器端）
+// 使用私钥对补丁文件进行签名
+// openssl dgst -sha256 -sign private_key.pem -out patch.sig patch.zip
+// base64 patch.sig > patch.sig.base64
+
+// 步骤 5: 应用补丁时验证签名
+String patchSignature = "从服务器获取的 Base64 签名"; // 从服务器下载的签名
+File patchFile = new File("/path/to/patch.zip");
+
+// 验证签名
+if (securityManager.verifySignature(patchFile, patchSignature)) {
+    Log.i(TAG, "签名验证通过，可以安全应用补丁");
+    // 应用补丁
+    hotUpdate.applyPatch(patchFile, callback);
+} else {
+    Log.e(TAG, "签名验证失败，补丁可能被篡改！");
+    // 拒绝应用补丁
+}
+```
+
+**完整的签名验证流程示例：**
+
+```java
+// 在 UpdateManager 中集成签名验证
+UpdateConfig config = new UpdateConfig.Builder()
+    .serverUrl("https://example.com")
+    .appKey("your-app-key")
+    .appVersion("1.0.0")
+    .debugMode(false)  // 生产环境必须关闭调试模式
+    .build();
+
+UpdateManager.init(context, config);
+
+// 设置公钥
+SecurityManager securityManager = new SecurityManager(context);
+securityManager.setSignaturePublicKey("你的公钥Base64字符串");
+
+// 检查更新并验证签名
+UpdateManager.getInstance().setCallback(new SimpleUpdateCallback() {
+    @Override
+    public void onCheckComplete(boolean hasUpdate, PatchInfo patchInfo) {
+        if (hasUpdate) {
+            // 下载补丁
+            UpdateManager.getInstance().downloadPatch(patchInfo, new DownloadCallback() {
+                @Override
+                public void onComplete(File patchFile) {
+                    // 验证签名
+                    String signature = patchInfo.getSignature(); // 从服务器返回的签名
+                    if (securityManager.verifySignature(patchFile, signature)) {
+                        // 签名验证通过，应用补丁
+                        UpdateManager.getInstance().applyPatch(patchInfo);
+                    } else {
+                        Log.e(TAG, "签名验证失败！");
+                    }
+                }
+            });
+        }
+    }
+});
+
+UpdateManager.getInstance().checkUpdate();
+```
+
+**注意事项：**
+- 🔒 **生产环境必须启用签名验证**，防止恶意补丁
+- 🔑 **私钥必须妥善保管**，只在服务器端使用
+- 📱 **公钥可以打包到 APK 中**，用于客户端验证
+- 🐛 **调试模式下可以跳过签名验证**，方便开发测试
+- ✅ **签名算法使用 SHA256withRSA**，安全可靠
+
 ### 方式二：使用 Demo 应用
 
 **下载 Demo APK：** https://github.com/706412584/Android_hotupdate/releases/tag/demo
@@ -196,6 +285,12 @@ if (intent != null) {
 
 ### Q: 如何回滚补丁？
 **A:** 调用 `hotUpdate.clearPatch()` 然后重启应用
+
+### Q: 如何启用签名验证？
+**A:** 使用 `SecurityManager.setSignaturePublicKey()` 设置公钥，然后在应用补丁前调用 `verifySignature()` 验证。详见[签名验证](#6-使用签名验证可选推荐生产环境使用)章节
+
+### Q: 调试模式下可以跳过签名验证吗？
+**A:** 可以，在 `UpdateConfig` 中设置 `debugMode(true)` 即可跳过签名验证，但生产环境必须关闭
 
 ### Q: 支持加固的APK吗（360加固等）？
 **A:** 部分支持，建议在加固前生成补丁，加固后充分测试。详见 [常见问题 - 加固相关](docs/FAQ.md#加固相关)
