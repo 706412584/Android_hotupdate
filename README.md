@@ -272,11 +272,75 @@ hotUpdate.applyPatch(patchFile, new RealHotUpdate.ApplyCallback() {
 3. 重启应用完全回滚
 
 **使用代码：**
+
+**方式一：简单回滚（推荐）**
+```java
+// 清除补丁
+RealHotUpdate hotUpdate = new RealHotUpdate(context);
+hotUpdate.clearPatch();
+
+// 提示用户重启应用
+Toast.makeText(context, "补丁已清除，请重启应用", Toast.LENGTH_LONG).show();
+```
+
+**方式二：清除并自动重启**
 ```java
 RealHotUpdate hotUpdate = new RealHotUpdate(context);
 hotUpdate.clearPatch();
+
 // 重启应用
+Intent intent = context.getPackageManager()
+    .getLaunchIntentForPackage(context.getPackageName());
+if (intent != null) {
+    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+    context.startActivity(intent);
+    
+    // 结束当前进程
+    if (context instanceof Activity) {
+        ((Activity) context).finish();
+    }
+    android.os.Process.killProcess(android.os.Process.myPid());
+}
 ```
+
+**方式三：带确认对话框的回滚**
+```java
+new AlertDialog.Builder(context)
+    .setTitle("清除补丁")
+    .setMessage("确定要清除已应用的补丁吗？\n\n注意：清除后需要重启应用才能完全回滚到原版本。")
+    .setPositiveButton("确定", (dialog, which) -> {
+        RealHotUpdate hotUpdate = new RealHotUpdate(context);
+        hotUpdate.clearPatch();
+        
+        // 询问是否立即重启
+        new AlertDialog.Builder(context)
+            .setTitle("重启应用")
+            .setMessage("补丁已清除，是否立即重启应用？")
+            .setPositiveButton("立即重启", (d, w) -> {
+                Intent intent = context.getPackageManager()
+                    .getLaunchIntentForPackage(context.getPackageName());
+                if (intent != null) {
+                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.startActivity(intent);
+                    if (context instanceof Activity) {
+                        ((Activity) context).finish();
+                    }
+                    android.os.Process.killProcess(android.os.Process.myPid());
+                }
+            })
+            .setNegativeButton("稍后重启", null)
+            .show();
+    })
+    .setNegativeButton("取消", null)
+    .show();
+```
+
+**clearPatch() 方法说明：**
+- 清除 DEX 目录 (`hotupdate/dex/`)
+- 清除合并的资源目录 (`hotupdate/merged/`)
+- 清除补丁目录 (`hotupdate/patches/`)
+- 清除补丁状态信息
+- **不会删除原始 APK，只删除补丁文件**
 
 ### 3. 在 Application 中集成
 
