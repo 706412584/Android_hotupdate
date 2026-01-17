@@ -5,4 +5,4 @@ before_install:
   - sdk use java 17.0.2-open
 install:
   - echo "Running custom install command"
-  - ./gradlew clean build publishToMavenLocal -x test
+  - ./gradlew clean build publishToMavenLocal -x test -x :patch-native:externalNativeBuildDebug -x :patch-native:externalNativeBuildRelease
