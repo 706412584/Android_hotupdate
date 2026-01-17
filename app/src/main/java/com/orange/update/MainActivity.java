@@ -698,6 +698,16 @@ public class MainActivity extends AppCompatActivity {
         // 输出到下载目录
         File outputFile = new File(outputDir, "patch_" + System.currentTimeMillis() + ".zip");
 
+        // 记录详细的输入信息
+        Log.d(TAG, "=== 开始生成补丁 ===");
+        Log.d(TAG, "基准 APK: " + selectedBaseApk.getAbsolutePath());
+        Log.d(TAG, "基准 APK 大小: " + formatSize(selectedBaseApk.length()));
+        Log.d(TAG, "新版 APK: " + selectedNewApk.getAbsolutePath());
+        Log.d(TAG, "新版 APK 大小: " + formatSize(selectedNewApk.length()));
+        Log.d(TAG, "输出文件: " + outputFile.getAbsolutePath());
+        Log.d(TAG, "签名: " + withSignature);
+        Log.d(TAG, "加密: " + withEncryption);
+
         String status = "正在生成补丁...";
         if (withSignature && withEncryption) {
             status = "正在生成、签名并加密补丁...";
@@ -733,6 +743,40 @@ public class MainActivity extends AppCompatActivity {
                     public void onComplete(PatchResult result) {
                         if (result.isSuccess()) {
                             lastGeneratedPatch = result.getPatchFile();
+                            
+                            // 检查是否有补丁文件（可能两个 APK 完全相同）
+                            if (lastGeneratedPatch == null) {
+                                progressBar.setVisibility(View.GONE);
+                                setButtonsEnabled(true);
+                                
+                                // 检查是否是因为没有差异
+                                if (result.getDiffSummary() != null && !result.getDiffSummary().hasChanges()) {
+                                    String msg = "两个 APK 完全相同，无需生成补丁";
+                                    tvStatus.setText("ℹ️ " + msg);
+                                    Log.i(TAG, msg);
+                                    Toast.makeText(MainActivity.this, msg, Toast.LENGTH_LONG).show();
+                                } else {
+                                    String errorMsg = "补丁文件生成失败（未知原因）";
+                                    tvStatus.setText("✗ " + errorMsg);
+                                    Log.e(TAG, errorMsg);
+                                    Toast.makeText(MainActivity.this, errorMsg, Toast.LENGTH_LONG).show();
+                                }
+                                return;
+                            }
+                            
+                            // 检查补丁文件是否存在
+                            if (!lastGeneratedPatch.exists()) {
+                                progressBar.setVisibility(View.GONE);
+                                setButtonsEnabled(true);
+                                String errorMsg = "补丁文件不存在: " + lastGeneratedPatch.getPath();
+                                tvStatus.setText("✗ 生成失败: " + errorMsg);
+                                Log.e(TAG, errorMsg);
+                                Toast.makeText(MainActivity.this, errorMsg, Toast.LENGTH_LONG).show();
+                                return;
+                            }
+                            
+                            Log.d(TAG, "✓ 补丁生成成功: " + lastGeneratedPatch.getAbsolutePath());
+                            Log.d(TAG, "补丁大小: " + formatSize(lastGeneratedPatch.length()));
                             
                             // 处理签名和加密
                             if (withSignature || withEncryption) {
@@ -787,7 +831,27 @@ public class MainActivity extends AppCompatActivity {
                 String signature = null;
                 File signatureFile = null;
                 
-                // 1. 加密补丁
+                // 确保补丁文件存在
+                if (patchFile == null || !patchFile.exists()) {
+                    throw new Exception("补丁文件不存在: " + (patchFile != null ? patchFile.getPath() : "null"));
+                }
+                
+                Log.d(TAG, "补丁文件路径: " + patchFile.getAbsolutePath());
+                Log.d(TAG, "补丁文件大小: " + patchFile.length() + " bytes");
+                
+                // 1. 签名补丁（嵌入到 zip 内部）- 必须在加密之前
+                if (withSignature && demoKeyPair != null) {
+                    runOnUiThread(() -> tvStatus.setText("正在签名补丁..."));
+                    
+                    signature = signPatchFile(finalPatchFile, demoKeyPair.getPrivate());
+                    
+                    // 将签名嵌入到 zip 包内部
+                    embedSignatureIntoZip(finalPatchFile, signature);
+                    
+                    Log.d(TAG, "✓ 签名已嵌入到补丁 zip 包内部");
+                }
+                
+                // 2. 加密补丁（在签名之后）
                 if (withEncryption) {
                     runOnUiThread(() -> tvStatus.setText("正在加密补丁..."));
                     
@@ -824,18 +888,6 @@ public class MainActivity extends AppCompatActivity {
                                 "加密需要 Android 6.0+", Toast.LENGTH_SHORT).show();
                         });
                     }
-                }
-                
-                // 2. 签名补丁（嵌入到 zip 内部）
-                if (withSignature && demoKeyPair != null) {
-                    runOnUiThread(() -> tvStatus.setText("正在签名补丁..."));
-                    
-                    signature = signPatchFile(finalPatchFile, demoKeyPair.getPrivate());
-                    
-                    // 将签名嵌入到 zip 包内部
-                    embedSignatureIntoZip(finalPatchFile, signature);
-                    
-                    Log.d(TAG, "✓ 签名已嵌入到补丁 zip 包内部");
                 }
                 
                 // 3. 显示结果
@@ -911,9 +963,8 @@ public class MainActivity extends AppCompatActivity {
             info.append("🔐 状态: 已加密\n");
         }
         
-        if (withSignature && signatureFile != null) {
-            info.append("\n🔒 签名文件: ").append(signatureFile.getName()).append("\n");
-            info.append("📊 大小: ").append(formatSize(signatureFile.length())).append("\n");
+        if (withSignature) {
+            info.append("\n🔒 签名: 已嵌入 zip 包内部 (signature.sig)\n");
         }
         
         info.append("\n⏱ 耗时: ").append(result.getGenerateTime()).append(" ms\n\n");
@@ -952,14 +1003,14 @@ public class MainActivity extends AppCompatActivity {
         info.append("=== 💡 使用说明 ===\n");
         if (withSignature && withEncryption) {
             info.append("1. 补丁文件: ").append(patchFile.getName()).append(" (已加密)\n");
-            info.append("2. 签名文件: ").append(signatureFile.getName()).append("\n");
+            info.append("2. 签名已嵌入在 zip 包内部\n");
             info.append("3. 客户端需要先解密再验证签名\n");
             info.append("4. 解密需要相同的密钥\n");
             info.append("5. 验证签名需要公钥\n");
         } else if (withSignature) {
             info.append("1. 补丁文件: ").append(patchFile.getName()).append("\n");
-            info.append("2. 签名文件: ").append(signatureFile.getName()).append("\n");
-            info.append("3. 将两个文件一起发送给客户端\n");
+            info.append("2. 签名已嵌入在 zip 包内部 (signature.sig)\n");
+            info.append("3. 只需发送补丁文件给客户端\n");
             info.append("4. 客户端使用公钥验证签名\n");
         } else if (withEncryption) {
             info.append("1. 补丁文件: ").append(patchFile.getName()).append(" (已加密)\n");
