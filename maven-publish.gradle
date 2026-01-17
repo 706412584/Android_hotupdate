@@ -26,8 +26,8 @@ ext {
     pomLicenseDist = 'repo'
     
     pomDeveloperId = '706412584'
-    pomDeveloperName = 'Your Name'
-    pomDeveloperEmail = 'your.email@example.com'
+    pomDeveloperName = 'xcwl'
+    pomDeveloperEmail = '706412584@qq.com'
 }
 
 // 配置发布仓库
