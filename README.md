@@ -50,10 +50,10 @@ dependencyResolutionManagement {
 ```groovy
 dependencies {
     // 补丁生成 SDK
-    implementation 'com.github.706412584.Android_hotupdate:patch-generator-android:v1.2.4'
+    implementation 'com.github.706412584.Android_hotupdate:patch-generator-android:vv1.2.5'
     
     // 热更新 SDK
-    implementation 'com.github.706412584.Android_hotupdate:update:v1.2.4'
+    implementation 'com.github.706412584.Android_hotupdate:update:vv1.2.5'
 }
 ```
 
@@ -227,9 +227,12 @@ if (!securityManager.verifySignature(encryptedPatch, signature)) {
     return;
 }
 
-// 2. 自动解密并应用（会提示输入密码）
+// 2. 解密并应用补丁
+String password = getPasswordFromConfig(); // 从配置获取密码
+File decryptedPatch = securityManager.decryptPatchWithPassword(encryptedPatch, password);
+
 RealHotUpdate hotUpdate = new RealHotUpdate(context);
-hotUpdate.applyPatch(encryptedPatch, callback);
+hotUpdate.applyPatch(decryptedPatch, callback);
 ```
 
 **9. 配置安全策略（Demo 应用功能）**
@@ -480,7 +483,7 @@ if (intent != null) {
 ## 📄 许可证
 
 ```
-Copyright 2024 Orange Update
+Copyright 2026 Orange Update
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

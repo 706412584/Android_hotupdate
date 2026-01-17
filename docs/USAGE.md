@@ -170,9 +170,14 @@ if (!securityManager.verifySignature(encryptedPatch, signature)) {
     return;
 }
 
-// 3. 应用补丁（自动解密，如果使用密码会提示输入）
+// 3. 解密并应用补丁
+String password = getPasswordFromConfig(); // 从配置获取密码
+File decryptedPatch = password.isEmpty()
+    ? securityManager.decryptPatch(encryptedPatch)
+    : securityManager.decryptPatchWithPassword(encryptedPatch, password);
+
 RealHotUpdate hotUpdate = new RealHotUpdate(context);
-hotUpdate.applyPatch(encryptedPatch, callback);
+hotUpdate.applyPatch(decryptedPatch, callback);
 ```
 
 ### 7. 使用密码加密补丁
@@ -189,26 +194,42 @@ String password = "your_secure_password";
 File encryptedPatch = securityManager.encryptPatchWithPassword(patchFile, password);
 Log.i(TAG, "补丁已加密: " + encryptedPatch.getPath());
 
-// 客户端应用时会自动检测 .enc 文件并提示输入密码
-RealHotUpdate hotUpdate = new RealHotUpdate(context);
-hotUpdate.applyPatch(encryptedPatch, new RealHotUpdate.ApplyCallback() {
-    @Override
-    public void onProgress(int percent, String message) {
-        // 会显示 "正在解密补丁..." 等状态
-        Log.d(TAG, message + ": " + percent + "%");
-    }
+// 客户端应用时需要提供相同的密码
+SecurityManager clientSecurityManager = new SecurityManager(context);
+String password = getPasswordFromConfig(); // 从配置或安全存储获取
+
+try {
+    // 使用密码解密
+    File decryptedPatch = clientSecurityManager.decryptPatchWithPassword(encryptedPatch, password);
     
-    @Override
-    public void onSuccess(RealHotUpdate.PatchResult result) {
-        Log.i(TAG, "补丁解密并应用成功！");
-    }
-    
-    @Override
-    public void onError(String message) {
-        Log.e(TAG, "解密或应用失败: " + message);
-    }
-});
+    // 应用解密后的补丁
+    RealHotUpdate hotUpdate = new RealHotUpdate(context);
+    hotUpdate.applyPatch(decryptedPatch, new RealHotUpdate.ApplyCallback() {
+        @Override
+        public void onProgress(int percent, String message) {
+            Log.d(TAG, message + ": " + percent + "%");
+        }
+        
+        @Override
+        public void onSuccess(RealHotUpdate.PatchResult result) {
+            Log.i(TAG, "补丁解密并应用成功！");
+        }
+        
+        @Override
+        public void onError(String message) {
+            Log.e(TAG, "应用失败: " + message);
+        }
+    });
+} catch (SecurityException e) {
+    Log.e(TAG, "解密失败: " + e.getMessage());
+    // 可能的错误：密码错误、文件损坏等
+}
 ```
+
+**注意：**
+- Demo 应用会弹出密码输入对话框，这只是为了演示方便
+- 在实际应用中，密码应该从配置文件、服务器或安全存储中获取
+- 密码作为参数传入 `decryptPatchWithPassword()` 方法
 
 **密码加密特性：**
 - 算法：PBKDF2WithHmacSHA256 + AES-256-GCM
@@ -386,11 +407,15 @@ if (!securityManager.verifySignature(encryptedPatch, signature)) {
     return;
 }
 
-Log.i(TAG, "签名验证通过，开始应用补丁");
+Log.i(TAG, "签名验证通过，开始解密并应用补丁");
 
-// 2. 应用补丁（自动解密）
+// 2. 解密补丁
+String password = getPasswordFromConfig(); // 从配置获取密码
+File decryptedPatch = securityManager.decryptPatchWithPassword(encryptedPatch, password);
+
+// 3. 应用补丁
 RealHotUpdate hotUpdate = new RealHotUpdate(context);
-hotUpdate.applyPatch(encryptedPatch, new RealHotUpdate.ApplyCallback() {
+hotUpdate.applyPatch(decryptedPatch, new RealHotUpdate.ApplyCallback() {
     @Override
     public void onSuccess(RealHotUpdate.PatchResult result) {
         Log.i(TAG, "补丁验证、解密并应用成功！");
@@ -702,7 +727,7 @@ java -jar patch-cli/build/libs/patch-cli.jar \
 // 项目根目录 build.gradle
 buildscript {
     dependencies {
-        classpath 'com.github.706412584.Android_hotupdate:patch-gradle-plugin:v1.2.4'
+        classpath 'com.github.706412584.Android_hotupdate:patch-gradle-plugin:vv1.2.5'
     }
 }
 
