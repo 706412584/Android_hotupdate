@@ -634,6 +634,35 @@ public class MainActivity extends AppCompatActivity {
         tvZipPasswordHint.setPadding(0, 0, 0, 15);
         layout.addView(tvZipPasswordHint);
         
+        // ZIP 密码输入（仅在选择 ZIP 密码保护时显示）
+        TextView tvZipPasswordLabel = new TextView(this);
+        tvZipPasswordLabel.setText("ZIP 密码：");
+        tvZipPasswordLabel.setTextSize(14);
+        tvZipPasswordLabel.setPadding(0, 10, 0, 8);
+        tvZipPasswordLabel.setVisibility(View.GONE);
+        layout.addView(tvZipPasswordLabel);
+        
+        android.widget.EditText etZipPassword = new android.widget.EditText(this);
+        etZipPassword.setHint("输入 ZIP 密码（留空使用默认密码）");
+        etZipPassword.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        etZipPassword.setVisibility(View.GONE);
+        layout.addView(etZipPassword);
+        
+        TextView tvZipPasswordNote = new TextView(this);
+        tvZipPasswordNote.setText("  密码从应用签名自动派生（设备绑定）");
+        tvZipPasswordNote.setTextSize(12);
+        tvZipPasswordNote.setTextColor(0xFF666666);
+        tvZipPasswordNote.setPadding(0, 0, 0, 15);
+        tvZipPasswordNote.setVisibility(View.GONE);
+        layout.addView(tvZipPasswordNote);
+        
+        // ZIP 密码选项变化监听
+        cbZipPassword.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            tvZipPasswordLabel.setVisibility(isChecked ? View.VISIBLE : View.GONE);
+            etZipPassword.setVisibility(isChecked ? View.VISIBLE : View.GONE);
+            tvZipPasswordNote.setVisibility(isChecked ? View.VISIBLE : View.GONE);
+        });
+        
         // 加密选项
         android.widget.CheckBox cbEncrypt = new android.widget.CheckBox(this);
         cbEncrypt.setText("🔐 对补丁进行加密");
@@ -647,7 +676,7 @@ public class MainActivity extends AppCompatActivity {
         tvEncryptHint.setPadding(0, 0, 0, 15);
         layout.addView(tvEncryptHint);
         
-        // 密码输入（仅在选择加密时显示）
+        // AES 加密密码输入（仅在选择加密时显示）
         TextView tvPasswordLabel = new TextView(this);
         tvPasswordLabel.setText("加密密码：");
         tvPasswordLabel.setTextSize(14);
@@ -684,7 +713,8 @@ public class MainActivity extends AppCompatActivity {
                 boolean withSignature = cbSign.isChecked();
                 boolean withZipPassword = cbZipPassword.isChecked();
                 boolean withEncryption = cbEncrypt.isChecked();
-                String password = etPassword.getText().toString().trim();
+                String zipPassword = etZipPassword.getText().toString().trim();
+                String aesPassword = etPassword.getText().toString().trim();
                 
                 if (withSignature && !hasKeys) {
                     Toast.makeText(this, "请先配置密钥", Toast.LENGTH_SHORT).show();
@@ -692,7 +722,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 
                 // 生成补丁
-                generatePatchWithOptions(withSignature, withZipPassword, withEncryption, password);
+                generatePatchWithOptions(withSignature, withZipPassword, withEncryption, zipPassword, aesPassword);
             })
             .setNegativeButton("取消", null);
         
@@ -708,7 +738,7 @@ public class MainActivity extends AppCompatActivity {
     /**
      * 生成补丁（可选签名、ZIP密码和加密）
      */
-    private void generatePatchWithOptions(boolean withSignature, boolean withZipPassword, boolean withEncryption, String password) {
+    private void generatePatchWithOptions(boolean withSignature, boolean withZipPassword, boolean withEncryption, String zipPassword, String aesPassword) {
         // 输出到下载目录
         File outputFile = new File(outputDir, "patch_" + System.currentTimeMillis() + ".zip");
 
@@ -803,7 +833,7 @@ public class MainActivity extends AppCompatActivity {
                             
                             // 处理签名、ZIP密码和加密
                             if (withSignature || withZipPassword || withEncryption) {
-                                processSecurityOptions(result, withSignature, withZipPassword, withEncryption, password);
+                                processSecurityOptions(result, withSignature, withZipPassword, withEncryption, zipPassword, aesPassword);
                             } else {
                                 progressBar.setVisibility(View.GONE);
                                 setButtonsEnabled(true);
@@ -846,7 +876,8 @@ public class MainActivity extends AppCompatActivity {
      * 处理安全选项（签名、ZIP密码和加密）
      */
     private void processSecurityOptions(PatchResult result, boolean withSignature, 
-                                       boolean withZipPassword, boolean withEncryption, String password) {
+                                       boolean withZipPassword, boolean withEncryption, 
+                                       String zipPassword, String aesPassword) {
         new Thread(() -> {
             try {
                 File patchFile = result.getPatchFile();
@@ -881,13 +912,20 @@ public class MainActivity extends AppCompatActivity {
                     com.orange.update.ZipPasswordManager zipPasswordManager = 
                         new com.orange.update.ZipPasswordManager(this);
                     
-                    // 获取派生密码
-                    String zipPassword = zipPasswordManager.getZipPassword();
+                    // 获取 ZIP 密码（如果用户输入了密码则使用用户密码，否则使用派生密码）
+                    String finalZipPassword;
+                    if (zipPassword != null && !zipPassword.isEmpty()) {
+                        finalZipPassword = zipPassword;
+                        Log.d(TAG, "使用用户自定义 ZIP 密码");
+                    } else {
+                        finalZipPassword = zipPasswordManager.getZipPassword();
+                        Log.d(TAG, "使用从应用签名派生的 ZIP 密码");
+                    }
                     
                     // 创建加密后的 ZIP 文件
                     File encryptedZipFile = new File(patchFile.getPath() + ".zip_enc");
                     
-                    boolean success = zipPasswordManager.encryptZip(patchFile, encryptedZipFile, zipPassword);
+                    boolean success = zipPasswordManager.encryptZip(patchFile, encryptedZipFile, finalZipPassword);
                     
                     if (success) {
                         // 删除原始文件，使用加密后的文件
@@ -912,17 +950,17 @@ public class MainActivity extends AppCompatActivity {
                         File encryptedFile;
                         
                         // 根据是否有密码选择加密方法
-                        if (!password.isEmpty()) {
+                        if (aesPassword != null && !aesPassword.isEmpty()) {
                             // 使用密码加密
                             Log.d(TAG, "使用自定义密码加密补丁");
-                            encryptedFile = securityManager.encryptPatchWithPassword(patchFile, password);
+                            encryptedFile = securityManager.encryptPatchWithPassword(patchFile, aesPassword);
                             
                             // 保存密码提示信息
                             File passwordFile = new File(patchFile.getPath() + ".pwd");
                             FileOutputStream fos = new FileOutputStream(passwordFile);
                             fos.write(("密码提示: 使用自定义密码\n" + 
                                       "注意: 客户端需要相同密码才能解密\n" +
-                                      "密码长度: " + password.length() + " 字符").getBytes("UTF-8"));
+                                      "密码长度: " + aesPassword.length() + " 字符").getBytes("UTF-8"));
                             fos.close();
                         } else {
                             // 使用默认密钥加密
