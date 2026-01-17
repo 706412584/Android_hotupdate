@@ -86,6 +86,101 @@ java -jar patch-cli.jar \
 - ✅ **Assets 文件** - 修改的 Assets 资源
 - ✅ **元数据** - 版本信息、变更统计
 
+### 4. 补丁加密（可选）
+
+为了保护补丁内容，可以对生成的补丁进行加密：
+
+```java
+// 生成补丁后加密
+SecurityManager securityManager = new SecurityManager(context);
+File patchFile = new File("/path/to/patch.zip");
+
+// 使用 AES-256-GCM 加密
+File encryptedPatch = securityManager.encryptPatch(patchFile);
+// 生成: patch.zip.enc
+
+Log.i(TAG, "补丁已加密: " + encryptedPatch.getPath());
+```
+
+**加密特性：**
+- 算法：AES-256-GCM（认证加密）
+- 密钥管理：Android KeyStore（设备绑定）
+- 最低版本：Android 6.0+ (API 23+)
+- 文件扩展名：`.enc`
+- 自动解密：应用补丁时自动检测并解密
+
+### 5. 补丁签名（可选）
+
+为了防止补丁被篡改，可以对补丁进行签名：
+
+```java
+// 服务器端：使用私钥签名
+// openssl dgst -sha256 -sign private_key.pem -out patch.sig patch.zip
+// base64 patch.sig > patch.sig.base64
+
+// 客户端：验证签名
+SecurityManager securityManager = new SecurityManager(context);
+securityManager.setSignaturePublicKey(publicKeyBase64);
+
+File patchFile = new File("/path/to/patch.zip");
+String signature = "从服务器获取的 Base64 签名";
+
+if (securityManager.verifySignature(patchFile, signature)) {
+    Log.i(TAG, "签名验证通过");
+} else {
+    Log.e(TAG, "签名验证失败");
+}
+```
+
+**签名特性：**
+- 算法：SHA256withRSA
+- 密钥长度：RSA-2048
+- 公钥：打包在 APK 中
+- 私钥：只在服务器端使用
+
+### 6. 组合使用签名和加密（推荐）
+
+在生产环境中，建议同时使用签名和加密：
+
+```java
+// 服务器端流程
+SecurityManager securityManager = new SecurityManager(context);
+
+// 1. 生成补丁
+File patchFile = generatePatch(baseApk, newApk);
+
+// 2. 加密补丁
+File encryptedPatch = securityManager.encryptPatch(patchFile);
+
+// 3. 对加密文件签名
+String signature = signFile(encryptedPatch, privateKey);
+saveSignature(signature, encryptedPatch.getPath() + ".sig");
+
+// 客户端流程
+// 1. 下载加密补丁和签名
+File encryptedPatch = downloadPatch();
+String signature = downloadSignature();
+
+// 2. 验证签名
+if (!securityManager.verifySignature(encryptedPatch, signature)) {
+    Log.e(TAG, "签名验证失败");
+    return;
+}
+
+// 3. 应用补丁（自动解密）
+RealHotUpdate hotUpdate = new RealHotUpdate(context);
+hotUpdate.applyPatch(encryptedPatch, callback);
+```
+
+**安全级别对比：**
+
+| 方案 | 防篡改 | 防窃取 | 推荐场景 |
+|------|--------|--------|----------|
+| 无保护 | ❌ | ❌ | 开发测试 |
+| 仅签名 | ✅ | ❌ | 一般应用 |
+| 仅加密 | ❌ | ✅ | 内容保护 |
+| 签名+加密 | ✅ | ✅ | 生产环境（推荐） |
+
 ## 补丁应用流程
 
 ### 1. 应用补丁
@@ -119,7 +214,111 @@ hotUpdate.applyPatch(patchFile, new RealHotUpdate.ApplyCallback() {
 });
 ```
 
-### 2. 回滚补丁
+### 2. 应用加密补丁
+
+应用会自动检测并解密加密补丁（`.enc` 扩展名）：
+
+```java
+RealHotUpdate hotUpdate = new RealHotUpdate(context);
+
+// 自动检测加密补丁并解密
+File encryptedPatch = new File("/path/to/patch.zip.enc");
+hotUpdate.applyPatch(encryptedPatch, new RealHotUpdate.ApplyCallback() {
+    @Override
+    public void onProgress(int percent, String message) {
+        // 会显示 "正在解密补丁..." 和 "正在应用补丁..." 等状态
+        Log.d(TAG, message + ": " + percent + "%");
+    }
+    
+    @Override
+    public void onSuccess(RealHotUpdate.PatchResult result) {
+        Log.i(TAG, "加密补丁解密并应用成功！");
+    }
+    
+    @Override
+    public void onError(String message) {
+        Log.e(TAG, "解密或应用失败: " + message);
+        // 可能的错误：
+        // - "解密需要 Android 6.0+"
+        // - "解密失败: [具体原因]"
+        // - 其他应用错误
+    }
+});
+```
+
+**手动解密（可选）：**
+
+```java
+SecurityManager securityManager = new SecurityManager(context);
+
+try {
+    File encryptedPatch = new File("/path/to/patch.zip.enc");
+    File decryptedPatch = securityManager.decryptPatch(encryptedPatch);
+    
+    Log.i(TAG, "解密成功: " + decryptedPatch.getPath());
+    
+    // 然后应用解密后的补丁
+    hotUpdate.applyPatch(decryptedPatch, callback);
+    
+} catch (SecurityException e) {
+    Log.e(TAG, "解密失败: " + e.getMessage());
+}
+```
+
+### 3. 验证签名后应用补丁
+
+```java
+SecurityManager securityManager = new SecurityManager(context);
+securityManager.setSignaturePublicKey(publicKeyBase64);
+
+File patchFile = new File("/path/to/patch.zip");
+String signature = "从服务器获取的签名";
+
+// 验证签名
+if (securityManager.verifySignature(patchFile, signature)) {
+    Log.i(TAG, "签名验证通过");
+    
+    // 应用补丁
+    RealHotUpdate hotUpdate = new RealHotUpdate(context);
+    hotUpdate.applyPatch(patchFile, callback);
+} else {
+    Log.e(TAG, "签名验证失败，拒绝应用补丁");
+}
+```
+
+### 4. 组合使用签名和加密
+
+```java
+SecurityManager securityManager = new SecurityManager(context);
+securityManager.setSignaturePublicKey(publicKeyBase64);
+
+File encryptedPatch = new File("/path/to/patch.zip.enc");
+String signature = "从服务器获取的签名";
+
+// 1. 先验证签名（验证加密文件的签名）
+if (!securityManager.verifySignature(encryptedPatch, signature)) {
+    Log.e(TAG, "签名验证失败");
+    return;
+}
+
+Log.i(TAG, "签名验证通过，开始应用补丁");
+
+// 2. 应用补丁（自动解密）
+RealHotUpdate hotUpdate = new RealHotUpdate(context);
+hotUpdate.applyPatch(encryptedPatch, new RealHotUpdate.ApplyCallback() {
+    @Override
+    public void onSuccess(RealHotUpdate.PatchResult result) {
+        Log.i(TAG, "补丁验证、解密并应用成功！");
+    }
+    
+    @Override
+    public void onError(String message) {
+        Log.e(TAG, "应用失败: " + message);
+    }
+});
+```
+
+### 5. 回滚补丁
 
 ```java
 // 简单回滚
@@ -229,9 +428,56 @@ public class MyApplication extends Application {
 1. **标题卡片** - 显示应用版本和状态
 2. **文件选择卡片** - 选择基准 APK 和新 APK
 3. **补丁操作卡片** - 生成、应用、清除补丁
-4. **信息显示卡片** - 显示系统信息和结果
+4. **签名验证卡片** - 生成密钥、验证签名、配置密钥
+5. **信息显示卡片** - 显示系统信息和结果
 
 ### 测试流程
+
+#### 测试签名验证
+
+1. **生成 RSA 密钥对**
+   - 点击「🔑 生成密钥」按钮
+   - 密钥自动保存到 `/sdcard/Download/`
+   - 显示公钥和私钥信息
+
+2. **测试签名验证成功**
+   - 点击「✅ 验证成功」按钮
+   - 使用真实的 RSA 签名算法
+   - 显示签名和验证结果
+
+3. **测试签名验证失败**
+   - 点击「❌ 验证失败」按钮
+   - 模拟补丁被篡改的情况
+   - 显示验证失败信息
+
+4. **配置自定义密钥**
+   - 点击「⚙️ 配置密钥」按钮
+   - 输入自己的公钥和私钥
+   - 或点击「加载现有密钥」自动填充
+   - 点击「保存」验证并保存密钥
+
+#### 测试加密和签名
+
+1. **生成带安全选项的补丁**
+   - 选择基准 APK 和新 APK
+   - 点击「生成补丁」
+   - 在弹出的对话框中选择：
+     - ✅ 🔒 签名补丁（防止篡改）
+     - ✅ 🔐 加密补丁（保护内容）
+   - 点击「生成」
+
+2. **查看生成的文件**
+   - 无保护：`patch_[timestamp].zip`
+   - 仅签名：`patch_[timestamp].zip` + `.sig`
+   - 仅加密：`patch_[timestamp].zip.enc`
+   - 签名+加密：`patch_[timestamp].zip.enc` + `.enc.sig`
+
+3. **应用加密补丁**
+   - 点击「应用补丁」
+   - 自动检测 `.enc` 扩展名
+   - 显示「正在解密补丁...」
+   - 解密成功后自动应用
+   - 显示应用结果
 
 #### 测试 DEX 和资源热更新
 

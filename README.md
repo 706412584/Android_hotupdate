@@ -149,6 +149,79 @@ if (securityManager.verifySignature(patchFile, patchSignature)) {
 }
 ```
 
+**7. 使用加密保护补丁（可选，推荐敏感内容使用）**
+
+为了保护补丁内容不被窃取，可以对补丁进行加密：
+
+```java
+// 步骤 1: 加密补丁（在服务器端或生成时）
+SecurityManager securityManager = new SecurityManager(context);
+File patchFile = new File("/path/to/patch.zip");
+
+// 使用 AES-256-GCM 加密
+File encryptedPatch = securityManager.encryptPatch(patchFile);
+// 生成加密文件: patch.zip.enc
+
+// 步骤 2: 客户端自动解密并应用
+// 客户端会自动检测 .enc 扩展名并解密
+RealHotUpdate hotUpdate = new RealHotUpdate(context);
+hotUpdate.applyPatch(encryptedPatch, new RealHotUpdate.ApplyCallback() {
+    @Override
+    public void onSuccess(RealHotUpdate.PatchResult result) {
+        Log.i(TAG, "补丁解密并应用成功！");
+    }
+    
+    @Override
+    public void onError(String message) {
+        Log.e(TAG, "解密或应用失败: " + message);
+    }
+});
+
+// 步骤 3: 手动解密（可选）
+try {
+    File decryptedPatch = securityManager.decryptPatch(encryptedPatch);
+    Log.i(TAG, "补丁解密成功: " + decryptedPatch.getPath());
+} catch (SecurityException e) {
+    Log.e(TAG, "解密失败: " + e.getMessage());
+}
+```
+
+**8. 组合使用签名和加密（最高安全级别）**
+
+在生产环境中，建议同时使用签名和加密：
+
+```java
+// 服务器端：生成、加密并签名补丁
+SecurityManager securityManager = new SecurityManager(context);
+
+// 1. 生成补丁
+File patchFile = generatePatch(baseApk, newApk);
+
+// 2. 加密补丁
+File encryptedPatch = securityManager.encryptPatch(patchFile);
+
+// 3. 对加密后的补丁签名
+String signature = signPatchFile(encryptedPatch, privateKey);
+saveSignature(signature, encryptedPatch.getPath() + ".sig");
+
+// 客户端：验证签名、解密并应用
+SecurityManager securityManager = new SecurityManager(context);
+securityManager.setSignaturePublicKey(publicKeyBase64);
+
+File encryptedPatch = downloadPatch();
+String signature = downloadSignature();
+
+// 1. 验证签名
+if (!securityManager.verifySignature(encryptedPatch, signature)) {
+    Log.e(TAG, "签名验证失败！");
+    return;
+}
+
+// 2. 自动解密并应用（RealHotUpdate 会自动处理 .enc 文件）
+RealHotUpdate hotUpdate = new RealHotUpdate(context);
+hotUpdate.applyPatch(encryptedPatch, callback);
+```
+
 **完整的签名验证流程示例：**
 
 ```java
@@ -198,6 +271,43 @@ UpdateManager.getInstance().checkUpdate();
 - 📱 **公钥可以打包到 APK 中**，用于客户端验证
 - 🐛 **调试模式下可以跳过签名验证**，方便开发测试
 - ✅ **签名算法使用 SHA256withRSA**，安全可靠
+- 🔐 **敏感内容建议启用加密**，使用 AES-256-GCM
+- 🛡️ **推荐同时使用签名和加密**，提供最高安全级别
+
+## 🛡️ 安全最佳实践
+
+### 开发环境
+- ✅ 可以跳过签名验证（`debugMode(true)`）
+- ✅ 可以使用未加密补丁
+- ✅ 快速迭代测试
+
+### 生产环境
+- ✅ **必须启用签名验证**
+- ✅ **敏感内容必须加密**
+- ✅ **使用 HTTPS 传输补丁**
+- ✅ **验证补丁 MD5/SHA256**
+- ✅ **监控补丁应用成功率**
+- ✅ **提供补丁回滚机制**
+
+### 密钥管理
+- 🔑 **私钥**: 只在服务器端使用，严格保密
+- 🔓 **公钥**: 打包在 APK 中，用于验证
+- 🔐 **加密密钥**: 使用 Android KeyStore，设备绑定
+- 🔄 **密钥轮换**: 定期更新密钥对
+
+### 补丁分发
+- 📡 **HTTPS**: 必须使用 HTTPS 传输
+- 🔍 **校验**: 下载后验证文件完整性
+- 📦 **签名**: 服务器端对补丁签名
+- 🔒 **加密**: 可选，保护敏感内容
+- 📊 **监控**: 记录下载和应用成功率
+
+### 错误处理
+- ❌ **签名失败**: 拒绝应用，记录日志
+- ❌ **解密失败**: 降级到未加密补丁或提示用户
+- ❌ **应用失败**: 自动回滚到原始版本
+- 📝 **日志记录**: 记录所有安全相关事件
+- 🚨 **异常上报**: 及时发现和处理问题
 
 ### 方式二：使用 Demo 应用
 
