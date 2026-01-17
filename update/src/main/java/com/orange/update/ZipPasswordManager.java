@@ -68,11 +68,13 @@ public class ZipPasswordManager {
             ZipFile sourceZipFile = new ZipFile(sourceZip);
             sourceZipFile.extractAll(tempDir.getAbsolutePath());
             
-            // 2. 使用密码重新打包
+            // 2. 使用密码重新打包（不压缩，使用存储模式）
             ZipParameters params = new ZipParameters();
             params.setEncryptFiles(true);
             params.setEncryptionMethod(EncryptionMethod.AES);
             params.setAesKeyStrength(AesKeyStrength.KEY_STRENGTH_256);
+            // 关键：设置为存储模式（不压缩）
+            params.setCompressionMethod(net.lingala.zip4j.model.enums.CompressionMethod.STORE);
             
             ZipFile destZipFile = new ZipFile(destZip, password.toCharArray());
             destZipFile.addFolder(tempDir, params);
