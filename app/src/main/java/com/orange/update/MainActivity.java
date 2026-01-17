@@ -1645,6 +1645,12 @@ public class MainActivity extends AppCompatActivity {
                     
                     // 显示结果
                     showRealHotUpdateResult(result);
+                    
+                    // 延迟重新创建 Activity，让用户看到成功消息
+                    new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+                        // 重新创建 Activity 以显示资源更新（如布局中的火焰图标）
+                        recreate();
+                    }, 1500); // 1.5秒后重新创建
                 });
             }
 
