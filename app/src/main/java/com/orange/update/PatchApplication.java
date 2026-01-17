@@ -62,11 +62,10 @@ public class PatchApplication extends Application {
             if (!verifyPatchIntegrity(appliedFile, prefs)) {
                 Log.e(TAG, "⚠️ Patch integrity verification failed");
                 
-                // 尝试恢复
-                if (!recoverPatch(appliedPatchId, appliedFile, prefs)) {
-                    Log.e(TAG, "⚠️ Patch recovery failed, patch has been cleared");
-                    return;
-                }
+                // 在 attachBaseContext 中无法使用 SecurityManager（需要完整的 Application Context）
+                // 因此我们只记录篡改并清除补丁，不尝试恢复
+                handleTamperedPatch(appliedPatchId, appliedFile, prefs);
+                return;
             }
             
             String patchPath = appliedFile.getAbsolutePath();
@@ -185,74 +184,50 @@ public class PatchApplication extends Application {
     }
     
     /**
-     * 恢复补丁
+     * 处理被篡改的补丁
+     * 
+     * 注意：在 attachBaseContext 中无法使用 SecurityManager 进行恢复
+     * 因为 SecurityManager 需要访问 KeyStore，而 KeyStore 需要完整的 Application Context
+     * 
+     * 策略：
+     * 1. 记录篡改次数
+     * 2. 清除被篡改的补丁文件
+     * 3. 超过 3 次后清除所有补丁元数据
+     * 4. 用户需要重新下载/应用补丁（会从加密存储自动恢复）
      */
-    private boolean recoverPatch(String patchId, java.io.File appliedFile, android.content.SharedPreferences prefs) {
+    private void handleTamperedPatch(String patchId, java.io.File appliedFile, android.content.SharedPreferences prefs) {
         int tamperCount = prefs.getInt("tamper_count", 0) + 1;
         prefs.edit().putInt("tamper_count", tamperCount).apply();
         
         Log.e(TAG, "⚠️ Patch tampered! Attempt: " + tamperCount + "/3");
         
-        // 超过限制，清除补丁
+        // 删除被篡改的文件
+        if (appliedFile.exists()) {
+            appliedFile.delete();
+            Log.d(TAG, "Deleted tampered patch file");
+        }
+        
+        // 超过限制，清除所有补丁元数据
         if (tamperCount >= 3) {
-            Log.e(TAG, "⚠️ Too many tamper attempts, clearing patch");
+            Log.e(TAG, "⚠️ Too many tamper attempts (" + tamperCount + "), clearing all patch metadata");
             prefs.edit()
                 .remove("applied_patch_id")
                 .remove("applied_patch_hash")
+                .remove("tamper_count")
                 .apply();
             
-            if (appliedFile.exists()) {
-                appliedFile.delete();
-            }
-            return false;
-        }
-        
-        // 尝试从加密存储恢复
-        Log.i(TAG, "Attempting to recover from encrypted storage...");
-        
-        try {
+            // 清除 merged_resources.apk
             java.io.File updateDir = new java.io.File(getFilesDir(), "update");
-            java.io.File patchesDir = new java.io.File(updateDir, "patches");
-            java.io.File encryptedFile = new java.io.File(patchesDir, patchId + ".enc");
-            
-            if (!encryptedFile.exists()) {
-                Log.e(TAG, "Encrypted patch not found");
-                return false;
+            java.io.File appliedDir = new java.io.File(updateDir, "applied");
+            java.io.File mergedFile = new java.io.File(appliedDir, "merged_resources.apk");
+            if (mergedFile.exists()) {
+                mergedFile.delete();
             }
             
-            // 使用 SecurityManager 解密
-            SecurityManager securityManager = new SecurityManager(this);
-            java.io.File decryptedFile = securityManager.decryptPatch(encryptedFile);
-            
-            // 替换被篡改的文件
-            if (appliedFile.exists()) {
-                appliedFile.delete();
-            }
-            
-            if (!decryptedFile.renameTo(appliedFile)) {
-                // 复制文件
-                copyFile(decryptedFile, appliedFile);
-                decryptedFile.delete();
-            }
-            
-            // 重新计算哈希
-            String newHash = calculateSHA256(appliedFile);
-            if (newHash != null) {
-                prefs.edit().putString("applied_patch_hash", newHash).apply();
-            }
-            
-            // 验证恢复结果
-            if (verifyPatchIntegrity(appliedFile, prefs)) {
-                Log.i(TAG, "✅ Patch recovered successfully");
-                prefs.edit().putInt("tamper_count", 0).apply();
-                return true;
-            }
-            
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to recover patch", e);
+            Log.e(TAG, "⚠️ All patch data cleared. User needs to re-apply patch.");
+        } else {
+            Log.w(TAG, "⚠️ Patch cleared. User can re-apply to recover from encrypted storage.");
         }
-        
-        return false;
     }
     
     /**
