@@ -279,21 +279,18 @@ public class SecurityManager {
             // 获取加密密钥
             SecretKey key = getOrCreateEncryptionKey();
             
-            // 生成随机 IV
-            byte[] iv = new byte[GCM_IV_LENGTH];
-            SecureRandom secureRandom = new SecureRandom();
-            secureRandom.nextBytes(iv);
-            
-            // 初始化加密器
+            // 初始化加密器（不提供 IV，让 Cipher 自动生成）
             Cipher cipher = Cipher.getInstance(ENCRYPTION_ALGORITHM);
-            GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
-            cipher.init(Cipher.ENCRYPT_MODE, key, spec);
+            cipher.init(Cipher.ENCRYPT_MODE, key);
             
             // 读取原始文件
             byte[] plainData = readFileBytes(patchFile);
             
             // 加密数据
             byte[] encryptedData = cipher.doFinal(plainData);
+            
+            // 获取 Cipher 自动生成的 IV
+            byte[] iv = cipher.getIV();
             
             // 写入加密文件：IV + 加密数据（包含 auth tag）
             try (FileOutputStream fos = new FileOutputStream(encryptedFile)) {
@@ -304,8 +301,7 @@ public class SecurityManager {
             return encryptedFile;
             
         } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException |
-                 InvalidAlgorithmParameterException | IllegalBlockSizeException | 
-                 BadPaddingException | IOException e) {
+                 IllegalBlockSizeException | BadPaddingException | IOException e) {
             Log.e(TAG, "Failed to encrypt patch file", e);
             // 清理失败的加密文件
             if (encryptedFile.exists()) {
@@ -330,18 +326,15 @@ public class SecurityManager {
         try {
             SecretKey key = getOrCreateEncryptionKey();
             
-            // 生成随机 IV
-            byte[] iv = new byte[GCM_IV_LENGTH];
-            SecureRandom secureRandom = new SecureRandom();
-            secureRandom.nextBytes(iv);
-            
-            // 初始化加密器
+            // 初始化加密器（不提供 IV，让 Cipher 自动生成）
             Cipher cipher = Cipher.getInstance(ENCRYPTION_ALGORITHM);
-            GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
-            cipher.init(Cipher.ENCRYPT_MODE, key, spec);
+            cipher.init(Cipher.ENCRYPT_MODE, key);
             
             // 加密数据
             byte[] encryptedData = cipher.doFinal(data);
+            
+            // 获取 Cipher 自动生成的 IV
+            byte[] iv = cipher.getIV();
             
             // 组合 IV + 加密数据
             byte[] result = new byte[iv.length + encryptedData.length];
@@ -351,8 +344,7 @@ public class SecurityManager {
             return result;
             
         } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException |
-                 InvalidAlgorithmParameterException | IllegalBlockSizeException | 
-                 BadPaddingException e) {
+                 IllegalBlockSizeException | BadPaddingException e) {
             Log.e(TAG, "Failed to encrypt data", e);
             throw new SecurityException("Failed to encrypt data: " + e.getMessage(), e);
         }
