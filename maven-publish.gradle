@@ -54,10 +54,16 @@ publishing {
 
 // 配置签名
 signing {
-    if (signingKeyId && signingPassword && signingSecretKeyRingFile) {
-        // 使用指定的密钥文件和密钥 ID
+    // 检测是否在 JitPack 环境中
+    def isJitPack = System.getenv('JITPACK') == 'true'
+    
+    if (!isJitPack && signingKeyId && signingPassword && signingSecretKeyRingFile) {
+        // 只在非 JitPack 环境且有签名配置时才启用签名
         required = true
         sign publishing.publications
+    } else {
+        // JitPack 环境或没有签名配置时禁用签名
+        required = false
     }
 }
 
