@@ -15,6 +15,7 @@ import android.util.Log;
 public class PatchApplication extends Application {
     
     private static final String TAG = "PatchApplication";
+    private static final String KEY_NEED_RECOVERY = "need_patch_recovery";
     
     @Override
     protected void attachBaseContext(Context base) {
@@ -22,6 +23,15 @@ public class PatchApplication extends Application {
         
         // 在最早的时机加载补丁
         loadPatchIfNeeded();
+    }
+    
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        
+        // 在 onCreate 中检查是否需要恢复补丁
+        // 此时 Application Context 已完全初始化，可以使用 SecurityManager
+        recoverPatchIfNeeded();
     }
     
     /**
@@ -192,8 +202,8 @@ public class PatchApplication extends Application {
      * 策略：
      * 1. 记录篡改次数
      * 2. 清除被篡改的补丁文件
-     * 3. 超过 3 次后清除所有补丁元数据
-     * 4. 用户需要重新下载/应用补丁（会从加密存储自动恢复）
+     * 3. 标记需要恢复（在 onCreate 中执行）
+     * 4. 超过 3 次后清除所有补丁元数据
      */
     private void handleTamperedPatch(String patchId, java.io.File appliedFile, android.content.SharedPreferences prefs) {
         int tamperCount = prefs.getInt("tamper_count", 0) + 1;
@@ -214,6 +224,7 @@ public class PatchApplication extends Application {
                 .remove("applied_patch_id")
                 .remove("applied_patch_hash")
                 .remove("tamper_count")
+                .remove(KEY_NEED_RECOVERY)
                 .apply();
             
             // 清除 merged_resources.apk
@@ -226,7 +237,96 @@ public class PatchApplication extends Application {
             
             Log.e(TAG, "⚠️ All patch data cleared. User needs to re-apply patch.");
         } else {
-            Log.w(TAG, "⚠️ Patch cleared. User can re-apply to recover from encrypted storage.");
+            // 标记需要恢复（在 onCreate 中执行）
+            prefs.edit().putBoolean(KEY_NEED_RECOVERY, true).apply();
+            Log.w(TAG, "⚠️ Patch cleared. Will attempt recovery in onCreate()");
+        }
+    }
+    
+    /**
+     * 在 onCreate 中恢复被篡改的补丁
+     * 
+     * 此时 Application Context 已完全初始化，可以使用 SecurityManager
+     */
+    private void recoverPatchIfNeeded() {
+        try {
+            android.content.SharedPreferences prefs = getSharedPreferences("patch_storage_prefs", Context.MODE_PRIVATE);
+            
+            // 检查是否需要恢复
+            boolean needRecovery = prefs.getBoolean(KEY_NEED_RECOVERY, false);
+            if (!needRecovery) {
+                return;
+            }
+            
+            String appliedPatchId = prefs.getString("applied_patch_id", null);
+            if (appliedPatchId == null || appliedPatchId.isEmpty()) {
+                Log.d(TAG, "No patch ID to recover");
+                prefs.edit().remove(KEY_NEED_RECOVERY).apply();
+                return;
+            }
+            
+            Log.i(TAG, "🔄 Attempting to recover patch from encrypted storage: " + appliedPatchId);
+            
+            // 使用 PatchStorage 从加密存储恢复
+            PatchStorage storage = new PatchStorage(this);
+            java.io.File recoveredFile = storage.decryptPatchToApplied(appliedPatchId);
+            
+            if (recoveredFile != null && recoveredFile.exists()) {
+                // 验证恢复的补丁
+                String newHash = calculateSHA256(recoveredFile);
+                String savedHash = prefs.getString("applied_patch_hash", null);
+                
+                if (newHash != null && newHash.equals(savedHash)) {
+                    Log.i(TAG, "✅ Patch recovered successfully from encrypted storage");
+                    Log.i(TAG, "✅ Hash verified: " + newHash.substring(0, 16) + "...");
+                    
+                    // 重置篡改计数和恢复标记
+                    prefs.edit()
+                        .putInt("tamper_count", 0)
+                        .remove(KEY_NEED_RECOVERY)
+                        .apply();
+                    
+                    // 提示用户重启应用以加载恢复的补丁
+                    Log.i(TAG, "⚠️ Please restart the app to load the recovered patch");
+                    
+                    // 可选：显示 Toast 提示用户
+                    android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+                    mainHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            android.widget.Toast.makeText(
+                                PatchApplication.this,
+                                "补丁已恢复，请重启应用",
+                                android.widget.Toast.LENGTH_LONG
+                            ).show();
+                        }
+                    });
+                } else {
+                    Log.e(TAG, "❌ Recovered patch hash mismatch");
+                    Log.e(TAG, "Expected: " + savedHash);
+                    Log.e(TAG, "Actual:   " + newHash);
+                    
+                    // 恢复失败，增加篡改计数
+                    int tamperCount = prefs.getInt("tamper_count", 0) + 1;
+                    prefs.edit().putInt("tamper_count", tamperCount).apply();
+                    
+                    if (tamperCount >= 3) {
+                        Log.e(TAG, "⚠️ Too many failed recovery attempts, clearing all patch data");
+                        prefs.edit()
+                            .remove("applied_patch_id")
+                            .remove("applied_patch_hash")
+                            .remove("tamper_count")
+                            .remove(KEY_NEED_RECOVERY)
+                            .apply();
+                    }
+                }
+            } else {
+                Log.e(TAG, "❌ Failed to recover patch from encrypted storage");
+                prefs.edit().remove(KEY_NEED_RECOVERY).apply();
+            }
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to recover patch in onCreate", e);
         }
     }
     
