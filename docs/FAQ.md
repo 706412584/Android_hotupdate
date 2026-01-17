@@ -233,6 +233,47 @@ hotUpdate.applyPatch(decryptedPatch, callback);
   - 需要管理和保护密码
   - 密码强度影响安全性
 
+### Q: 如何使用密码加密补丁？
+**A:** 使用 `encryptPatchWithPassword` 和 `decryptPatchWithPassword` 方法：
+
+**加密：**
+```java
+SecurityManager securityManager = new SecurityManager(context);
+String password = "your_secure_password";
+File encryptedPatch = securityManager.encryptPatchWithPassword(patchFile, password);
+```
+
+**解密：**
+```java
+SecurityManager securityManager = new SecurityManager(context);
+String password = getPasswordFromConfig(); // 从配置或安全存储获取
+File decryptedPatch = securityManager.decryptPatchWithPassword(encryptedPatch, password);
+
+// 然后应用解密后的补丁
+RealHotUpdate hotUpdate = new RealHotUpdate(context);
+hotUpdate.applyPatch(decryptedPatch, callback);
+```
+
+**注意：**
+- 密码作为参数传入，不应该弹窗让用户输入
+- Demo 应用的密码输入对话框只是为了演示方便
+- 在实际应用中，密码应该从配置文件、服务器或安全存储中获取
+- 建议使用强密码（至少 8 位，包含字母数字）
+
+### Q: 密码加密和 KeyStore 加密有什么区别？
+**A:**
+- **KeyStore 加密**：
+  - 密钥存储在 Android KeyStore
+  - 密钥与设备绑定，无法导出
+  - 无需管理密码
+  - 更安全，但不能跨设备使用
+  
+- **密码加密**：
+  - 使用 PBKDF2 从密码派生密钥
+  - 可以跨设备使用
+  - 需要管理和保护密码
+  - 密码强度影响安全性
+
 ### Q: 如何配置安全策略？
 **A:** 使用 SharedPreferences 配置：
 ```java
