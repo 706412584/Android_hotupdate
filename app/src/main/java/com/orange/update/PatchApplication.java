@@ -48,14 +48,6 @@ public class PatchApplication extends Application {
             
             Log.d(TAG, "Loading applied patch: " + appliedPatchId);
             
-            // ✅ 验证补丁完整性（防止篡改）
-            PatchStorage storage = new PatchStorage(this);
-            if (!storage.verifyAndRecoverPatch()) {
-                Log.e(TAG, "⚠️ Patch integrity verification failed and recovery failed");
-                Log.e(TAG, "Patch has been cleared for security reasons");
-                return;
-            }
-            
             // 获取已应用的补丁文件
             java.io.File updateDir = new java.io.File(getFilesDir(), "update");
             java.io.File appliedDir = new java.io.File(updateDir, "applied");
@@ -64,6 +56,17 @@ public class PatchApplication extends Application {
             if (!appliedFile.exists()) {
                 Log.w(TAG, "Applied patch file not found: " + appliedFile.getAbsolutePath());
                 return;
+            }
+            
+            // ✅ 验证补丁完整性（防止篡改）
+            if (!verifyPatchIntegrity(appliedFile, prefs)) {
+                Log.e(TAG, "⚠️ Patch integrity verification failed");
+                
+                // 尝试恢复
+                if (!recoverPatch(appliedPatchId, appliedFile, prefs)) {
+                    Log.e(TAG, "⚠️ Patch recovery failed, patch has been cleared");
+                    return;
+                }
             }
             
             String patchPath = appliedFile.getAbsolutePath();
@@ -146,5 +149,151 @@ public class PatchApplication extends Application {
         }
         
         return false;
+    }
+    
+    /**
+     * 验证补丁完整性
+     */
+    private boolean verifyPatchIntegrity(java.io.File patchFile, android.content.SharedPreferences prefs) {
+        if (!patchFile.exists()) {
+            return false;
+        }
+        
+        String savedHash = prefs.getString("applied_patch_hash", null);
+        if (savedHash == null || savedHash.isEmpty()) {
+            Log.w(TAG, "No saved hash, patch may be from old version (backward compatible)");
+            return true; // 向后兼容
+        }
+        
+        String currentHash = calculateSHA256(patchFile);
+        if (currentHash == null) {
+            Log.e(TAG, "Failed to calculate current hash");
+            return false;
+        }
+        
+        boolean valid = savedHash.equals(currentHash);
+        
+        if (valid) {
+            Log.d(TAG, "✅ Patch integrity verified: " + currentHash.substring(0, 16) + "...");
+        } else {
+            Log.e(TAG, "⚠️ PATCH INTEGRITY CHECK FAILED!");
+            Log.e(TAG, "Expected: " + savedHash);
+            Log.e(TAG, "Actual:   " + currentHash);
+        }
+        
+        return valid;
+    }
+    
+    /**
+     * 恢复补丁
+     */
+    private boolean recoverPatch(String patchId, java.io.File appliedFile, android.content.SharedPreferences prefs) {
+        int tamperCount = prefs.getInt("tamper_count", 0) + 1;
+        prefs.edit().putInt("tamper_count", tamperCount).apply();
+        
+        Log.e(TAG, "⚠️ Patch tampered! Attempt: " + tamperCount + "/3");
+        
+        // 超过限制，清除补丁
+        if (tamperCount >= 3) {
+            Log.e(TAG, "⚠️ Too many tamper attempts, clearing patch");
+            prefs.edit()
+                .remove("applied_patch_id")
+                .remove("applied_patch_hash")
+                .apply();
+            
+            if (appliedFile.exists()) {
+                appliedFile.delete();
+            }
+            return false;
+        }
+        
+        // 尝试从加密存储恢复
+        Log.i(TAG, "Attempting to recover from encrypted storage...");
+        
+        try {
+            java.io.File updateDir = new java.io.File(getFilesDir(), "update");
+            java.io.File patchesDir = new java.io.File(updateDir, "patches");
+            java.io.File encryptedFile = new java.io.File(patchesDir, patchId + ".enc");
+            
+            if (!encryptedFile.exists()) {
+                Log.e(TAG, "Encrypted patch not found");
+                return false;
+            }
+            
+            // 使用 SecurityManager 解密
+            SecurityManager securityManager = new SecurityManager(this);
+            java.io.File decryptedFile = securityManager.decryptPatch(encryptedFile);
+            
+            // 替换被篡改的文件
+            if (appliedFile.exists()) {
+                appliedFile.delete();
+            }
+            
+            if (!decryptedFile.renameTo(appliedFile)) {
+                // 复制文件
+                copyFile(decryptedFile, appliedFile);
+                decryptedFile.delete();
+            }
+            
+            // 重新计算哈希
+            String newHash = calculateSHA256(appliedFile);
+            if (newHash != null) {
+                prefs.edit().putString("applied_patch_hash", newHash).apply();
+            }
+            
+            // 验证恢复结果
+            if (verifyPatchIntegrity(appliedFile, prefs)) {
+                Log.i(TAG, "✅ Patch recovered successfully");
+                prefs.edit().putInt("tamper_count", 0).apply();
+                return true;
+            }
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to recover patch", e);
+        }
+        
+        return false;
+    }
+    
+    /**
+     * 计算 SHA-256 哈希
+     */
+    private String calculateSHA256(java.io.File file) {
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            java.io.FileInputStream fis = new java.io.FileInputStream(file);
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+            while ((bytesRead = fis.read(buffer)) != -1) {
+                digest.update(buffer, 0, bytesRead);
+            }
+            fis.close();
+            
+            byte[] hashBytes = digest.digest();
+            StringBuilder sb = new StringBuilder();
+            for (byte b : hashBytes) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to calculate SHA-256", e);
+            return null;
+        }
+    }
+    
+    /**
+     * 复制文件
+     */
+    private void copyFile(java.io.File source, java.io.File target) throws java.io.IOException {
+        java.io.FileInputStream fis = new java.io.FileInputStream(source);
+        java.io.FileOutputStream fos = new java.io.FileOutputStream(target);
+        byte[] buffer = new byte[8192];
+        int bytesRead;
+        while ((bytesRead = fis.read(buffer)) != -1) {
+            fos.write(buffer, 0, bytesRead);
+        }
+        fos.flush();
+        fos.close();
+        fis.close();
     }
 }
