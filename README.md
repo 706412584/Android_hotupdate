@@ -20,6 +20,7 @@
 ## 📚 文档导航
 
 - **[快速开始](#-快速开始)** - 5 分钟上手
+- **[Demo 下载](https://github.com/706412584/Android_hotupdate/releases/tag/demo)** - 下载体验 APK
 - **[详细使用文档](docs/USAGE.md)** - 完整的使用说明
 - **[常见问题](docs/FAQ.md)** - 问题排查指南
 - **[JitPack 发布指南](JITPACK_RELEASE.md)** - 如何发布新版本
@@ -48,10 +49,10 @@ dependencyResolutionManagement {
 ```groovy
 dependencies {
     // 补丁生成 SDK
-    implementation 'com.github.706412584.Android_hotupdate:patch-generator-android:1.2.1'
+    implementation 'com.github.706412584.Android_hotupdate:patch-generator-android:1.2.4'
     
     // 热更新 SDK
-    implementation 'com.github.706412584.Android_hotupdate:update:1.2.1'
+    implementation 'com.github.706412584.Android_hotupdate:update:1.2.4'
 }
 ```
 
@@ -110,6 +111,10 @@ public class MyApplication extends Application {
 ```
 
 ### 方式二：使用 Demo 应用
+
+**下载 Demo APK：** https://github.com/706412584/Android_hotupdate/releases/tag/demo
+
+或者自己编译：
 
 ```bash
 # 安装 Demo
