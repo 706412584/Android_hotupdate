@@ -488,8 +488,66 @@ public class HotUpdateHelper {
                 logW("Applied patch file not found: " + appliedFile.getAbsolutePath());
                 return;
             }
+
+            // ✅ 验证补丁完整性（防止篡改）
+            if (!verifyPatchIntegrity(appliedFile, prefs)) {
+                logE("⚠️ Patch integrity verification failed");
+
+                // 尝试恢复
+                if (!recoverPatch(appliedPatchId, appliedFile, prefs)) {
+                    logE("⚠️ Patch recovery failed, patch has been cleared");
+                    return;
+                }
+            }
+            
             // ✅ APK 签名验证（启动时验证）- 使用 apksig
-            if (hasApkSignatureInternal(appliedFile)) {
+            // 检查安全策略是否要求签名
+            boolean requireSignature = securityPrefs.getBoolean(KEY_REQUIRE_SIGNATURE, false);
+            
+            // 检查补丁在应用时是否有签名（防止攻击者删除签名文件）
+            boolean hadSignatureWhenApplied = prefs.getBoolean("patch_had_signature", false);
+            boolean hasSignatureNow = hasApkSignatureInternal(appliedFile);
+            
+            // 漏洞修复1：如果安全策略要求签名，但补丁没有签名，拒绝加载
+            if (requireSignature && !hasSignatureNow) {
+                logE("⚠️ 安全策略要求补丁必须签名，但当前补丁没有签名！");
+                
+                // 清除不符合安全策略的补丁
+                prefs.edit()
+                    .remove("applied_patch_id")
+                    .remove("applied_patch_hash")
+                    .remove("patch_had_signature")
+                    .apply();
+                
+                if (appliedFile.exists()) {
+                    appliedFile.delete();
+                }
+                
+                logE("⚠️ 已清除不符合安全策略的补丁");
+                return;
+            }
+            
+            // 漏洞修复2：如果补丁应用时有签名，但现在没有了，说明被删除了
+            if (hadSignatureWhenApplied && !hasSignatureNow) {
+                logE("⚠️ 安全警告：补丁签名文件被删除！这是一次攻击行为。");
+                
+                // 清除被篡改的补丁
+                prefs.edit()
+                    .remove("applied_patch_id")
+                    .remove("applied_patch_hash")
+                    .remove("patch_had_signature")
+                    .apply();
+                
+                if (appliedFile.exists()) {
+                    appliedFile.delete();
+                }
+                
+                logE("⚠️ 已清除被篡改的补丁");
+                return;
+            }
+            
+            // 如果补丁有签名，验证签名
+            if (hasSignatureNow) {
                 logD("检测到 APK 签名，开始验证...");
                 boolean signatureValid = patchSigner.verifyPatchSignatureMatchesApp(appliedFile);
                 
@@ -500,6 +558,7 @@ public class HotUpdateHelper {
                     prefs.edit()
                         .remove("applied_patch_id")
                         .remove("applied_patch_hash")
+                        .remove("patch_had_signature")
                         .apply();
                     
                     if (appliedFile.exists()) {
@@ -511,18 +570,6 @@ public class HotUpdateHelper {
                 }
                 
                 logD("✅ APK 签名验证通过（启动时）");
-            }
-
-
-             // ✅ 验证补丁完整性（防止篡改）
-            if (!verifyPatchIntegrity(appliedFile, prefs)) {
-                logE("⚠️ Patch integrity verification failed");
-
-                // 尝试恢复
-                if (!recoverPatch(appliedPatchId, appliedFile, prefs)) {
-                    logE("⚠️ Patch recovery failed, patch has been cleared");
-                    return;
-                }
             }
 
             // 检查补丁是否是 ZIP 密码保护的
@@ -1734,6 +1781,12 @@ public class HotUpdateHelper {
             boolean success = applier.apply(patchInfo);
             
             if (success) {
+                // 记录补丁是否有签名（用于启动时验证）
+                boolean hasSignature = checkHasSignature(actualPatchFile);
+                android.content.SharedPreferences prefs = context.getSharedPreferences("patch_storage_prefs", Context.MODE_PRIVATE);
+                prefs.edit().putBoolean("patch_had_signature", hasSignature).apply();
+                logD("✓ 记录补丁签名状态: " + (hasSignature ? "有签名" : "无签名"));
+                
                 if (hasResources && callback != null) {
                     callback.onProgress(80, "资源合并完成");
                 }
