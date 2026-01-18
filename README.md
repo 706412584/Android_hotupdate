@@ -36,29 +36,10 @@
 ```groovy
 dependencies {
     // 热更新核心库（包含完整功能）
-    implementation 'io.github.706412584:update:1.3.1'
+    implementation 'io.github.706412584:update:1.3.2'
     
     // 如果需要在设备上生成补丁，添加：
-    implementation 'io.github.706412584:patch-generator-android:1.3.1'
-}
-```
-
-**方式二：使用 JitPack**
-
-```groovy
-// settings.gradle
-dependencyResolutionManagement {
-    repositories {
-        google()
-        mavenCentral()
-        maven { url 'https://jitpack.io' }
-    }
-}
-
-// build.gradle
-dependencies {
-    implementation 'com.github.706412584.Android_hotupdate:update:v1.3.1'
-    implementation 'com.github.706412584.Android_hotupdate:patch-generator-android:v1.3.1'
+    implementation 'io.github.706412584:patch-generator-android:1.3.2'
 }
 ```
 
@@ -204,7 +185,7 @@ helper.applyPatchWithZipPassword(patchFile, zipPassword, callback);
 > - [组合使用签名和加密](docs/USAGE.md#组合使用签名和加密) - 最高安全级别
 > - [安全最佳实践](docs/USAGE.md#安全最佳实践) - 生产环境配置建议
 
-### 防篡改保护（v1.3.1 新增）
+### 防篡改保护（v1.3.2 新增）
 
 系统自动提供补丁完整性验证和自动恢复功能：
 

@@ -264,7 +264,7 @@ try {
 | 签名+加密（KeyStore） | ✅ | ✅ | ❌ | 生产环境 |
 | 签名+加密（密码） | ✅ | ✅ | ✅ | 最高安全级别 |
 
-### 8. 防篡改保护（v1.3.1 新增）
+### 8. 防篡改保护（v1.3.2 新增）
 
 为了防止补丁在解密后被恶意篡改，系统提供了**补丁完整性验证**和**自动恢复**功能。
 
@@ -315,17 +315,9 @@ try {
 
 #### 使用方式
 
-**无需额外配置**，防篡改功能已自动集成到 `PatchApplication` 和 `HotUpdateHelper` 中：
+**无需额外配置**，防篡改功能已经集成到`HotUpdateHelper` 中：
 
-```java
-// 方式一：使用 PatchApplication（自动启用）
-public class MyApplication extends PatchApplication {
-    // 防篡改保护自动启用
-    // 每次启动时自动验证补丁完整性
-    // 检测到篡改时自动恢复
-}
-
-// 方式二：使用 HotUpdateHelper（自动启用）
+// 方式：使用 HotUpdateHelper（自动启用）
 HotUpdateHelper helper = new HotUpdateHelper(context);
 helper.loadAppliedPatch(); // 自动验证完整性
 ```
@@ -418,7 +410,7 @@ adb logcat -s PatchApplication:* PatchStorage:*
 
 #### 注意事项
 
-- ✅ 防篡改功能在 v1.3.1+ 版本中自动启用
+- ✅ 防篡改功能在 v1.3.2+ 版本中自动启用
 - ✅ 无需额外配置或代码修改
 - ✅ 兼容旧版本补丁（向后兼容）
 - ✅ 不影响正常的补丁应用流程

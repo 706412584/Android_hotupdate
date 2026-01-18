@@ -203,24 +203,32 @@ public class ResourceMerger {
     
     /**
      * 判断是否是资源相关的条目
+     * 
+     * 注意：需要排除以下内容：
+     * - META-INF/ 签名文件（会导致签名验证失败）
+     * - classes.dex 代码文件（由 DexPatcher 单独处理）
+     * - lib/ 原生库（不需要热更新）
      */
     private static boolean isResourceEntry(String name) {
-        // 资源文件
-        if (name.equals("resources.arsc")) {
-            return true;
+        // 排除签名文件
+        if (name.startsWith("META-INF/")) {
+            return false;
         }
-        // res 目录下的文件
-        if (name.startsWith("res/")) {
-            return true;
+        // 排除 dex 文件
+        if (name.endsWith(".dex")) {
+            return false;
         }
-        // assets 目录下的文件
-        if (name.startsWith("assets/")) {
-            return true;
+        // 排除原生库
+        if (name.startsWith("lib/")) {
+            return false;
         }
-        // AndroidManifest.xml
-        if (name.equals("AndroidManifest.xml")) {
-            return true;
+        // 排除 Kotlin 元数据（可选）
+        if (name.startsWith("kotlin/")) {
+            return false;
         }
-        return false;
+        
+        // 其他所有文件都视为资源相关
+        // 包括：resources.arsc, res/, assets/, AndroidManifest.xml 等
+        return true;
     }
 }
