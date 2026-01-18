@@ -105,8 +105,47 @@ public class PatchSigner {
             Log.i(TAG, "开始签名补丁: " + patchFile.getName());
             Log.i(TAG, "补丁大小: " + formatSize(patchFile.length()));
             
-            // 使用 loadKeyStore 方法加载密钥库（支持 BouncyCastle JKS）
+            // 使用 loadKeyStore 方法加载密钥库
             KeyStore keyStore = loadKeyStore(keystoreFile, keystorePassword);
+            
+            // 检查是否需要使用 ZipSigner（JKS 文件且标准加载失败）
+            if (keyStore == null && "JKS_NEEDS_ZIPSIGNER".equals(lastError)) {
+                Log.i(TAG, "使用 ZipSigner 对 JKS 进行签名");
+                
+                // 创建签名后的文件
+                File signedPatchFile = new File(patchFile.getParent(), 
+                    patchFile.getName().replace(".zip", "_signed.zip"));
+                
+                // 如果已存在，先删除
+                if (signedPatchFile.exists()) {
+                    signedPatchFile.delete();
+                }
+                
+                // 使用 ZipSigner 签名
+                boolean success = ZipSignerHelper.signZipWithJks(
+                    patchFile, signedPatchFile,
+                    keystoreFile, keystorePassword,
+                    keyAlias, keyPassword
+                );
+                
+                if (!success) {
+                    lastError = "ZipSigner 签名失败";
+                    Log.e(TAG, lastError);
+                    return null;
+                }
+                
+                Log.i(TAG, "✓ 补丁签名成功 (via ZipSigner)");
+                Log.i(TAG, "  签名后大小: " + formatSize(signedPatchFile.length()));
+                Log.i(TAG, "  输出文件: " + signedPatchFile.getName());
+                
+                // 删除原始文件，重命名签名后的文件
+                patchFile.delete();
+                File finalPatchFile = new File(patchFile.getParent(), patchFile.getName());
+                signedPatchFile.renameTo(finalPatchFile);
+                
+                return finalPatchFile;
+            }
+            
             if (keyStore == null) {
                 return null;
             }
@@ -475,6 +514,11 @@ public class PatchSigner {
     /**
      * 加载 keystore
      * 
+     * 支持多种格式：
+     * 1. JKS - 使用 ZipSigner 原生支持（优先）
+     * 2. BKS - 使用 BouncyCastle
+     * 3. PKCS12 - 使用标准 Java 或 BouncyCastle
+     * 
      * @param keystoreFile Keystore 文件
      * @param password 密码
      * @return KeyStore 对象，失败返回 null
@@ -486,7 +530,37 @@ public class PatchSigner {
             Log.i(TAG, "加载 Keystore: " + keystoreFile.getName());
             Log.i(TAG, "文件大小: " + formatSize(keystoreFile.length()));
             
-            // 方法1: 尝试使用 BouncyCastle 的 JKS/PKCS12 提供者（最可靠）
+            String fileName = keystoreFile.getName().toLowerCase(java.util.Locale.ROOT);
+            
+            // 方法1: 如果是 JKS 文件，优先尝试使用 ZipSigner（原生 JKS 支持）
+            if (fileName.endsWith(".jks") && ZipSignerHelper.isAvailable()) {
+                try {
+                    Log.d(TAG, "检测到 JKS 文件，尝试使用 ZipSigner...");
+                    
+                    // 注意：ZipSigner 需要 keyAlias 和 keyPassword
+                    // 这里我们先尝试加载 KeyStore，稍后在 signPatch 中使用完整参数
+                    
+                    // 尝试使用标准 JKS 加载（可能失败）
+                    try {
+                        keyStore = KeyStore.getInstance("JKS");
+                        try (java.io.FileInputStream fis = new java.io.FileInputStream(keystoreFile)) {
+                            keyStore.load(fis, password.toCharArray());
+                        }
+                        Log.i(TAG, "✓ Keystore 加载成功 (标准 JKS)");
+                        return keyStore;
+                    } catch (Exception e) {
+                        Log.d(TAG, "标准 JKS 加载失败，将在签名时使用 ZipSigner: " + e.getMessage());
+                        // 返回 null，让 signPatch 方法使用 ZipSigner
+                        lastError = "JKS_NEEDS_ZIPSIGNER";
+                        return null;
+                    }
+                    
+                } catch (Exception e) {
+                    Log.d(TAG, "ZipSigner 检查失败: " + e.getMessage());
+                }
+            }
+            
+            // 方法2: 尝试使用 BouncyCastle 的 JKS/PKCS12 提供者（最可靠）
             try {
                 Log.d(TAG, "尝试使用 BouncyCastle 提供者...");
                 
@@ -496,29 +570,13 @@ public class PatchSigner {
                 
                 Log.d(TAG, "BouncyCastle 提供者已注册: " + bcProvider.getName());
                 
-                // 列出 BouncyCastle 支持的 KeyStore 类型
-                Log.d(TAG, "BouncyCastle 支持的服务:");
-                for (java.security.Provider.Service service : bcProvider.getServices()) {
-                    if (service.getType().equals("KeyStore")) {
-                        Log.d(TAG, "  KeyStore: " + service.getAlgorithm());
-                    }
-                }
-                
-                // 检查 PBES2 支持
-                try {
-                    javax.crypto.SecretKeyFactory skf = javax.crypto.SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256", "BC");
-                    Log.d(TAG, "✓ BouncyCastle 支持 PBKDF2WithHmacSHA256");
-                } catch (Exception e) {
-                    Log.d(TAG, "✗ BouncyCastle 不支持 PBKDF2WithHmacSHA256: " + e.getMessage());
-                }
-                
                 // 首先尝试 BKS（BouncyCastle KeyStore - 最兼容 Android）
                 String[] keystoreTypes = {"BKS", "PKCS12", "BCPKCS12", "PKCS12-DEF"};
                 for (String type : keystoreTypes) {
                     try {
                         Log.d(TAG, "尝试 BouncyCastle KeyStore 类型: " + type);
                         keyStore = KeyStore.getInstance(type, "BC");
-                        try (FileInputStream fis = new FileInputStream(keystoreFile)) {
+                        try (java.io.FileInputStream fis = new java.io.FileInputStream(keystoreFile)) {
                             keyStore.load(fis, password.toCharArray());
                         }
                         Log.i(TAG, "✓ Keystore 加载成功 (类型: " + type + " via BouncyCastle)");
@@ -540,72 +598,33 @@ public class PatchSigner {
                     }
                 }
                 
-                // 然后尝试 JKS 类型
-                String[] jksTypes = {"JKS", "jks", "SUN", "sun.security.provider.JavaKeyStore"};
-                for (String type : jksTypes) {
-                    try {
-                        Log.d(TAG, "尝试 BouncyCastle KeyStore 类型: " + type);
-                        keyStore = KeyStore.getInstance(type, "BC");
-                        try (FileInputStream fis = new FileInputStream(keystoreFile)) {
-                            keyStore.load(fis, password.toCharArray());
-                        }
-                        Log.i(TAG, "✓ Keystore 加载成功 (类型: " + type + " via BouncyCastle)");
-                        
-                        // 列出所有别名
-                        java.util.Enumeration<String> aliases = keyStore.aliases();
-                        Log.d(TAG, "Keystore 中的别名:");
-                        while (aliases.hasMoreElements()) {
-                            String alias = aliases.nextElement();
-                            Log.d(TAG, "  - " + alias + " (isKey: " + keyStore.isKeyEntry(alias) + ")");
-                        }
-                        
-                        return keyStore;
-                    } catch (Exception e) {
-                        Log.d(TAG, "类型 " + type + " 失败: " + e.getMessage());
-                    }
-                }
-                
                 throw new Exception("BouncyCastle 无法加载此 KeyStore");
                 
             } catch (Exception e) {
                 Log.d(TAG, "BouncyCastle 加载失败: " + e.getMessage());
-                e.printStackTrace();
             }
             
-            // 方法2: 尝试标准 JKS（可能在某些 Android 版本上可用）
-            try {
-                Log.d(TAG, "尝试标准 JKS...");
-                keyStore = KeyStore.getInstance("JKS");
-                try (FileInputStream fis = new FileInputStream(keystoreFile)) {
-                    keyStore.load(fis, password.toCharArray());
-                }
-                Log.i(TAG, "✓ Keystore 加载成功 (JKS)");
-                return keyStore;
-            } catch (Exception e) {
-                Log.d(TAG, "标准 JKS 加载失败: " + e.getMessage());
-            }
-            
-            // 方法3: 尝试 PKCS12 格式
+            // 方法3: 尝试标准 PKCS12 格式
             try {
                 Log.d(TAG, "尝试 PKCS12...");
                 keyStore = KeyStore.getInstance("PKCS12");
-                try (FileInputStream fis = new FileInputStream(keystoreFile)) {
+                try (java.io.FileInputStream fis = new java.io.FileInputStream(keystoreFile)) {
                     keyStore.load(fis, password.toCharArray());
                 }
                 Log.i(TAG, "✓ Keystore 加载成功 (PKCS12)");
                 return keyStore;
             } catch (Exception e) {
                 // 所有方法都失败了
-                String fileName = keystoreFile.getName();
-                if (fileName.toLowerCase().endsWith(".jks")) {
-                    lastError = "JKS 格式不支持。请将 JKS 转换为 PKCS12 格式：\n\n" +
+                if (fileName.endsWith(".jks")) {
+                    lastError = "JKS 格式需要使用 ZipSigner 或转换为 BKS 格式：\n\n" +
+                               "方法1 - 转换为 BKS（推荐）：\n" +
                                "keytool -importkeystore \\\n" +
-                               "  -srckeystore " + fileName + " \\\n" +
-                               "  -destkeystore " + fileName.replace(".jks", ".p12") + " \\\n" +
+                               "  -srckeystore " + keystoreFile.getName() + " \\\n" +
+                               "  -destkeystore " + keystoreFile.getName().replace(".jks", ".bks") + " \\\n" +
                                "  -srcstoretype JKS \\\n" +
-                               "  -deststoretype PKCS12\n\n" +
-                               "然后使用生成的 .p12 文件进行签名。\n\n" +
-                               "原因：Android 和 BouncyCastle 都不支持 JKS 私钥格式。";
+                               "  -deststoretype BKS \\\n" +
+                               "  -provider org.bouncycastle.jce.provider.BouncyCastleProvider\n\n" +
+                               "方法2 - 使用 ZipSigner 库（已集成）";
                 } else {
                     lastError = "Keystore 加载失败 (尝试了所有方法): " + e.getMessage();
                 }
