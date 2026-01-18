@@ -2,16 +2,16 @@ package com.orange.update;
 
 import android.util.Log;
 
+import com.orange.update.signer.JksSigner;
+
 import java.io.File;
-import java.net.URL;
-import java.security.KeyStore;
 
 import kellinwood.security.zipsigner.ZipSigner;
 
 /**
  * ZipSigner 库包装类
  * 
- * 提供对 kellinwood ZipSigner 库的封装，用于支持 JKS keystore 的原生加载和签名。
+ * 提供对签名库的封装，用于支持 JKS keystore 的原生加载和签名。
  * 
  * 功能：
  * - 使用 JKS 对 ZIP 文件进行签名（原生支持）
@@ -22,7 +22,10 @@ public class ZipSignerHelper {
     private static final String TAG = "ZipSignerHelper";
     
     /**
-     * 使用 ZipSigner 对 ZIP 文件进行签名（支持 JKS）
+     * 使用签名工具对 ZIP 文件进行签名（支持 JKS）
+     * 
+     * 优先使用 JksSigner（支持 Android JKS），
+     * 如果不可用则回退到 ZipSigner
      * 
      * @param inputFile 输入 ZIP 文件
      * @param outputFile 输出签名后的 ZIP 文件
@@ -35,6 +38,15 @@ public class ZipSignerHelper {
     public static boolean signZipWithJks(File inputFile, File outputFile,
                                          File keystoreFile, String keystorePassword,
                                          String keyAlias, String keyPassword) {
+        
+        // 优先尝试使用 JksSigner（支持 Android JKS）
+        if (JksSigner.isAvailable()) {
+            Log.d(TAG, "使用 JksSigner");
+            return JksSigner.sign(inputFile, outputFile, 
+                keystoreFile, keystorePassword, keyAlias, keyPassword);
+        }
+        
+        // 回退到 ZipSigner（可能不支持 Android JKS）
         try {
             Log.d(TAG, "使用 ZipSigner 签名: " + inputFile.getName());
             Log.d(TAG, "  Keystore: " + keystoreFile.getName());
@@ -43,11 +55,10 @@ public class ZipSignerHelper {
             // 创建 ZipSigner 实例
             ZipSigner zipSigner = new ZipSigner();
             
-            // 设置为自定义密钥模式
-            zipSigner.setKeymode("custom");
-            
             // 转换为 URL
-            URL keystoreUrl = keystoreFile.toURI().toURL();
+            java.net.URL keystoreUrl = keystoreFile.toURI().toURL();
+            
+            Log.d(TAG, "  Keystore URL: " + keystoreUrl);
             
             // 执行签名
             // signZip(URL keystoreUrl, String keystoreType, char[] keystorePass, 
@@ -55,7 +66,7 @@ public class ZipSignerHelper {
             //         String inputFilename, String outputFilename)
             zipSigner.signZip(
                 keystoreUrl,
-                "auto",  // 自动检测 keystore 类型（JKS/BKS）
+                "JKS",  // keystore 类型
                 keystorePassword.toCharArray(),
                 keyAlias,
                 keyPassword.toCharArray(),
@@ -72,23 +83,34 @@ public class ZipSignerHelper {
             
         } catch (Exception e) {
             Log.e(TAG, "ZipSigner 签名失败: " + e.getMessage(), e);
+            
+            // 打印更详细的错误信息
+            if (e.getCause() != null) {
+                Log.e(TAG, "  原因: " + e.getCause().getMessage());
+            }
+            
             return false;
         }
     }
     
     /**
-     * 检查 ZipSigner 库是否可用
+     * 检查签名工具是否可用
      * 
      * @return 是否可用
      */
     public static boolean isAvailable() {
+        // 优先检查 JksSigner
+        if (JksSigner.isAvailable()) {
+            return true;
+        }
+        
+        // 检查 ZipSigner
         try {
-            // 尝试加载 ZipSigner 类
             Class.forName("kellinwood.security.zipsigner.ZipSigner");
             Log.d(TAG, "✓ ZipSigner 库可用");
             return true;
         } catch (ClassNotFoundException e) {
-            Log.w(TAG, "✗ ZipSigner 库不可用");
+            Log.w(TAG, "✗ 签名工具不可用");
             return false;
         }
     }
