@@ -915,7 +915,7 @@ public class MainActivity extends AppCompatActivity {
         new Thread(() -> {
             try {
                 File patchFile = result.getPatchFile();
-                File finalPatchFile = patchFile;
+                File currentFile = patchFile;  // 当前处理的文件
                 
                 // 确保补丁文件存在
                 if (patchFile == null || !patchFile.exists()) {
@@ -932,7 +932,7 @@ public class MainActivity extends AppCompatActivity {
                     // 使用 PatchSigner 对补丁进行签名
                     PatchSigner patchSigner = new PatchSigner(MainActivity.this);
                     File signedPatch = patchSigner.signPatch(
-                        finalPatchFile,
+                        currentFile,
                         selectedKeystoreFile,
                         keystorePassword,
                         keyAlias,
@@ -940,7 +940,7 @@ public class MainActivity extends AppCompatActivity {
                     );
                     
                     if (signedPatch != null && signedPatch.exists()) {
-                        finalPatchFile = signedPatch;
+                        currentFile = signedPatch;  // 更新当前文件为签名后的文件
                         Log.d(TAG, "✓ 补丁签名成功");
                         Log.d(TAG, "  签名后文件: " + signedPatch.getAbsolutePath());
                         Log.d(TAG, "  签名后大小: " + formatSize(signedPatch.length()));
@@ -968,20 +968,23 @@ public class MainActivity extends AppCompatActivity {
                         Log.d(TAG, "使用从应用签名派生的 ZIP 密码");
                     }
                     
-                    // 创建加密后的 ZIP 文件
-                    File encryptedZipFile = new File(patchFile.getPath() + ".zip_enc");
+                    // 创建加密后的 ZIP 文件（使用临时文件名）
+                    File encryptedZipFile = new File(currentFile.getParent(), 
+                        currentFile.getName().replace(".zip", "_zippwd.zip"));
                     
-                    boolean success = zipPasswordManager.encryptZip(patchFile, encryptedZipFile, finalZipPassword);
+                    boolean success = zipPasswordManager.encryptZip(currentFile, encryptedZipFile, finalZipPassword);
                     
                     if (success) {
-                        // 删除原始文件，使用加密后的文件
-                        patchFile.delete();
-                        encryptedZipFile.renameTo(patchFile);
-                        finalPatchFile = patchFile;
+                        // 删除上一步的文件，重命名加密后的文件
+                        currentFile.delete();
+                        File finalZipFile = new File(currentFile.getParent(), 
+                            patchFile.getName());  // 使用原始文件名
+                        encryptedZipFile.renameTo(finalZipFile);
+                        currentFile = finalZipFile;
                         
                         // 如果使用自定义密码，保存密码提示文件
                         if (isCustomPassword) {
-                            File zipPasswordFile = new File(patchFile.getPath() + ".zippwd");
+                            File zipPasswordFile = new File(currentFile.getPath() + ".zippwd");
                             FileOutputStream fos = new FileOutputStream(zipPasswordFile);
                             fos.write(("ZIP 密码提示: 使用自定义密码\n" + 
                                       "注意: 应用补丁时需要输入相同密码\n" +
@@ -991,6 +994,7 @@ public class MainActivity extends AppCompatActivity {
                         }
                         
                         Log.d(TAG, "✓ ZIP 密码保护已添加（AES-256）");
+                        Log.d(TAG, "  当前文件: " + currentFile.getAbsolutePath());
                     } else {
                         throw new Exception("ZIP 密码加密失败");
                     }
@@ -1010,10 +1014,10 @@ public class MainActivity extends AppCompatActivity {
                         if (aesPassword != null && !aesPassword.isEmpty()) {
                             // 使用密码加密
                             Log.d(TAG, "使用自定义密码加密补丁");
-                            encryptedFile = securityManager.encryptPatchWithPassword(patchFile, aesPassword);
+                            encryptedFile = securityManager.encryptPatchWithPassword(currentFile, aesPassword);
                             
                             // 保存密码提示信息
-                            File passwordFile = new File(patchFile.getPath() + ".pwd");
+                            File passwordFile = new File(encryptedFile.getPath() + ".pwd");
                             FileOutputStream fos = new FileOutputStream(passwordFile);
                             fos.write(("密码提示: 使用自定义密码\n" + 
                                       "注意: 客户端需要相同密码才能解密\n" +
@@ -1022,11 +1026,13 @@ public class MainActivity extends AppCompatActivity {
                         } else {
                             // 使用默认密钥加密
                             Log.d(TAG, "使用默认密钥加密补丁");
-                            encryptedFile = securityManager.encryptPatch(patchFile);
+                            encryptedFile = securityManager.encryptPatch(currentFile);
                         }
                         
-                        finalPatchFile = encryptedFile;
+                        currentFile = encryptedFile;  // 更新当前文件为加密后的文件
                         lastGeneratedPatch = encryptedFile;
+                        Log.d(TAG, "✓ AES 加密完成");
+                        Log.d(TAG, "  当前文件: " + currentFile.getAbsolutePath());
                     } else {
                         runOnUiThread(() -> {
                             Toast.makeText(MainActivity.this, 
@@ -1036,7 +1042,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 
                 // 4. 显示结果
-                File finalFinalPatchFile = finalPatchFile;
+                File finalFile = currentFile;
                 
                 runOnUiThread(() -> {
                     progressBar.setVisibility(View.GONE);
@@ -1060,11 +1066,15 @@ public class MainActivity extends AppCompatActivity {
                     }
                     tvStatus.setText(statusText + "!");
                     
+                    Log.i(TAG, "=== 最终补丁文件 ===");
+                    Log.i(TAG, "  文件: " + finalFile.getAbsolutePath());
+                    Log.i(TAG, "  大小: " + formatSize(finalFile.length()));
+                    
                     // 清除之前选择的补丁文件，使用新生成的补丁
                     selectedPatchFile = null;
                     btnSelectPatch.setText("选择补丁");
                     
-                    showSecuredPatchResult(result, finalFinalPatchFile, null, 
+                    showSecuredPatchResult(result, finalFile, null, 
                                           null, withApkSignature, withZipPassword, withEncryption);
                     updateButtonStates();
                 });
