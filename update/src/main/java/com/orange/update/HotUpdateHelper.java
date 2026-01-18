@@ -59,6 +59,10 @@ public class HotUpdateHelper {
     private ExecutorService executor;  // 延迟初始化
     private final SharedPreferences securityPrefs;
     
+    // 日志回调
+    private static LogCallback globalLogCallback;
+    private LogCallback logCallback;
+    
     // 安全策略配置键
     private static final String PREFS_SECURITY = "security_policy";
     private static final String KEY_REQUIRE_SIGNATURE = "require_signature";
@@ -78,6 +82,77 @@ public class HotUpdateHelper {
         // SecurityManager、PatchStorage、PatchApplier 延迟初始化
         // 因为 SecurityManager 需要 Android KeyStore，在 attachBaseContext 阶段无法使用
         // 只有在调用 applyPatch() 等需要加密功能的方法时才初始化
+    }
+    
+    /**
+     * 设置全局日志回调（所有 HotUpdateHelper 实例共享）
+     * 
+     * @param callback 日志回调接口
+     */
+    public static void setGlobalLogCallback(LogCallback callback) {
+        globalLogCallback = callback;
+    }
+    
+    /**
+     * 设置实例日志回调（仅当前实例使用）
+     * 
+     * @param callback 日志回调接口
+     */
+    public void setLogCallback(LogCallback callback) {
+        this.logCallback = callback;
+    }
+    
+    /**
+     * 内部日志方法
+     */
+    private void logD(String message) {
+        if (logCallback != null) {
+            logCallback.onLog(LogLevel.DEBUG, TAG, message);
+        } else if (globalLogCallback != null) {
+            globalLogCallback.onLog(LogLevel.DEBUG, TAG, message);
+        } else {
+            Log.d(TAG, message);
+        }
+    }
+    
+    private void logI(String message) {
+        if (logCallback != null) {
+            logCallback.onLog(LogLevel.INFO, TAG, message);
+        } else if (globalLogCallback != null) {
+            globalLogCallback.onLog(LogLevel.INFO, TAG, message);
+        } else {
+            Log.i(TAG, message);
+        }
+    }
+    
+    private void logW(String message) {
+        if (logCallback != null) {
+            logCallback.onLog(LogLevel.WARN, TAG, message);
+        } else if (globalLogCallback != null) {
+            globalLogCallback.onLog(LogLevel.WARN, TAG, message);
+        } else {
+            Log.w(TAG, message);
+        }
+    }
+    
+    private void logE(String message) {
+        if (logCallback != null) {
+            logCallback.onLog(LogLevel.ERROR, TAG, message);
+        } else if (globalLogCallback != null) {
+            globalLogCallback.onLog(LogLevel.ERROR, TAG, message);
+        } else {
+            Log.e(TAG, message);
+        }
+    }
+    
+    private void logE(String message, Throwable throwable) {
+        if (logCallback != null) {
+            logCallback.onLog(LogLevel.ERROR, TAG, message + "\n" + Log.getStackTraceString(throwable));
+        } else if (globalLogCallback != null) {
+            globalLogCallback.onLog(LogLevel.ERROR, TAG, message + "\n" + Log.getStackTraceString(throwable));
+        } else {
+            Log.e(TAG, message, throwable);
+        }
     }
     
     /**
@@ -157,7 +232,7 @@ public class HotUpdateHelper {
                 boolean isAesEncrypted = patchFile.getName().endsWith(".enc");
                 
                 if (isAesEncrypted) {
-                    Log.d(TAG, "检测到 AES 加密补丁");
+                    logD("检测到 AES 加密补丁");
                     
                     if (callback != null) {
                         callback.onProgress(10, "解密补丁...");
@@ -174,10 +249,10 @@ public class HotUpdateHelper {
                         fos.close();
                         
                         actualPatchFile = tempDecryptedFile;
-                        Log.d(TAG, "✓ AES 解密成功（使用默认密钥）");
+                        logD("✓ AES 解密成功（使用默认密钥）");
                         
                     } catch (Exception e) {
-                        Log.e(TAG, "AES 解密失败（默认密钥）: " + e.getMessage());
+                        logE("AES 解密失败（默认密钥）: " + e.getMessage());
                         
                         // 清理临时文件
                         if (tempDecryptedFile != null && tempDecryptedFile.exists()) {
@@ -221,7 +296,7 @@ public class HotUpdateHelper {
                             return;
                         }
                         
-                        Log.d(TAG, "✅ APK 签名验证通过（解密后）");
+                        logD("✅ APK 签名验证通过（解密后）");
                     }
                 }
                 
@@ -233,7 +308,7 @@ public class HotUpdateHelper {
                 ZipPasswordManager zipPasswordManager = storage.getZipPasswordManager();
                 
                 if (zipPasswordManager.isEncrypted(actualPatchFile)) {
-                    Log.d(TAG, "检测到 ZIP 密码加密");
+                    logD("检测到 ZIP 密码加密");
                     
                     if (callback != null) {
                         callback.onProgress(25, "检查 ZIP 密码保护...");
@@ -260,7 +335,7 @@ public class HotUpdateHelper {
                     
                     // 没有自定义密码，直接保存加密文件到 applied 目录
                     // 应用启动时会自动使用派生密码解密
-                    Log.d(TAG, "使用派生密码，补丁将以加密状态保存");
+                    logD("使用派生密码，补丁将以加密状态保存");
                 }
                 
                 if (callback != null) {
@@ -299,7 +374,7 @@ public class HotUpdateHelper {
             fis.close();
             return data;
         } catch (Exception e) {
-            Log.e(TAG, "Failed to read file", e);
+            logE("Failed to read file", e);
             return null;
         }
     }
@@ -362,7 +437,7 @@ public class HotUpdateHelper {
             PatchInfo patchInfo = createPatchInfo(patchFile);
             return applier.apply(patchInfo);
         } catch (Exception e) {
-            Log.e(TAG, "应用补丁失败", e);
+            logE("应用补丁失败", e);
             return false;
         }
     }
@@ -398,11 +473,11 @@ public class HotUpdateHelper {
             String appliedPatchId = prefs.getString("applied_patch_id", null);
 
             if (appliedPatchId == null || appliedPatchId.isEmpty()) {
-                Log.d(TAG, "No applied patch to load");
+                logD("No applied patch to load");
                 return;
             }
 
-            Log.d(TAG, "Loading applied patch: " + appliedPatchId);
+            logD("Loading applied patch: " + appliedPatchId);
 
             // 获取已应用的补丁文件
             java.io.File updateDir = new java.io.File(context.getFilesDir(), "update");
@@ -410,28 +485,16 @@ public class HotUpdateHelper {
             java.io.File appliedFile = new java.io.File(appliedDir, "current_patch.zip");
 
             if (!appliedFile.exists()) {
-                Log.w(TAG, "Applied patch file not found: " + appliedFile.getAbsolutePath());
+                logW("Applied patch file not found: " + appliedFile.getAbsolutePath());
                 return;
             }
-
-            // ✅ 验证补丁完整性（防止篡改）
-            if (!verifyPatchIntegrity(appliedFile, prefs)) {
-                Log.e(TAG, "⚠️ Patch integrity verification failed");
-
-                // 尝试恢复
-                if (!recoverPatch(appliedPatchId, appliedFile, prefs)) {
-                    Log.e(TAG, "⚠️ Patch recovery failed, patch has been cleared");
-                    return;
-                }
-            }
-            
             // ✅ APK 签名验证（启动时验证）- 使用 apksig
             if (hasApkSignatureInternal(appliedFile)) {
-                Log.d(TAG, "检测到 APK 签名，开始验证...");
+                logD("检测到 APK 签名，开始验证...");
                 boolean signatureValid = patchSigner.verifyPatchSignatureMatchesApp(appliedFile);
                 
                 if (!signatureValid) {
-                    Log.e(TAG, "⚠️ APK 签名验证失败: " + patchSigner.getError());
+                    logE("⚠️ APK 签名验证失败: " + patchSigner.getError());
                     
                     // 清除被篡改的补丁
                     prefs.edit()
@@ -443,17 +506,29 @@ public class HotUpdateHelper {
                         appliedFile.delete();
                     }
                     
-                    Log.e(TAG, "⚠️ 已清除被篡改的补丁");
+                    logE("⚠️ 已清除被篡改的补丁");
                     return;
                 }
                 
-                Log.d(TAG, "✅ APK 签名验证通过（启动时）");
+                logD("✅ APK 签名验证通过（启动时）");
+            }
+
+
+             // ✅ 验证补丁完整性（防止篡改）
+            if (!verifyPatchIntegrity(appliedFile, prefs)) {
+                logE("⚠️ Patch integrity verification failed");
+
+                // 尝试恢复
+                if (!recoverPatch(appliedPatchId, appliedFile, prefs)) {
+                    logE("⚠️ Patch recovery failed, patch has been cleared");
+                    return;
+                }
             }
 
             // 检查补丁是否是 ZIP 密码保护的
             java.io.File actualPatchFile = appliedFile;
             if (isZipPasswordProtectedInternal(appliedFile)) {
-                Log.d(TAG, "Patch is ZIP password protected, decrypting...");
+                logD("Patch is ZIP password protected, decrypting...");
                 
                 // 获取保存的自定义密码（如果有）
                 String customPassword = prefs.getString("custom_zip_password", null);
@@ -462,18 +537,18 @@ public class HotUpdateHelper {
                 actualPatchFile = decryptZipPatchOnLoad(appliedFile, customPassword);
                 
                 if (actualPatchFile == null) {
-                    Log.e(TAG, "Failed to decrypt ZIP password protected patch");
+                    logE("Failed to decrypt ZIP password protected patch");
                     return;
                 }
                 
-                Log.d(TAG, "✓ ZIP password protected patch decrypted");
+                logD("✓ ZIP password protected patch decrypted");
             }
 
             String patchPath = actualPatchFile.getAbsolutePath();
 
             // 检查补丁是否包含资源
             if (hasResourcePatchInternal(actualPatchFile)) {
-                Log.d(TAG, "Patch contains resources, merging with original APK");
+                logD("Patch contains resources, merging with original APK");
 
                 // 使用 ResourceMerger 合并资源（Tinker 的方式）
                 java.io.File mergedResourceFile = new java.io.File(appliedDir, "merged_resources.apk");
@@ -482,32 +557,32 @@ public class HotUpdateHelper {
                     context, actualPatchFile, mergedResourceFile);
 
                 if (merged && mergedResourceFile.exists()) {
-                    Log.i(TAG, "Resources merged successfully, size: " + mergedResourceFile.length());
+                    logI("Resources merged successfully, size: " + mergedResourceFile.length());
                     // 使用合并后的完整资源包
                     patchPath = mergedResourceFile.getAbsolutePath();
                 } else {
-                    Log.w(TAG, "Failed to merge resources, using patch directly");
+                    logW("Failed to merge resources, using patch directly");
                 }
             }
 
             // 注入 DEX 补丁
             if (!DexPatcher.isPatchInjected(context, patchPath)) {
                 DexPatcher.injectPatchDex(context, patchPath);
-                Log.d(TAG, "Dex patch loaded successfully");
+                logD("Dex patch loaded successfully");
             }
 
             // 加载资源补丁（使用合并后的完整资源包）
             try {
                 ResourcePatcher.loadPatchResources(context, patchPath);
-                Log.d(TAG, "Resource patch loaded successfully");
+                logD("Resource patch loaded successfully");
             } catch (ResourcePatcher.PatchResourceException e) {
-                Log.w(TAG, "Failed to load resource patch", e);
+                logW("Failed to load resource patch");
             }
 
-            Log.i(TAG, "✅ Patch loading completed with integrity verification");
+            logI("✅ Patch loading completed with integrity verification");
 
         } catch (Exception e) {
-            Log.e(TAG, "Failed to load patch in attachBaseContext", e);
+            logE("Failed to load patch in attachBaseContext", e);
         }
     }
     
@@ -574,11 +649,11 @@ public class HotUpdateHelper {
         boolean valid = savedHash.equals(currentHash);
 
         if (valid) {
-            Log.d(TAG, "✅ Patch integrity verified: " + currentHash.substring(0, 16) + "...");
+            logD("✅ Patch integrity verified: " + currentHash.substring(0, 16) + "...");
         } else {
-            Log.e(TAG, "⚠️ PATCH INTEGRITY CHECK FAILED!");
-            Log.e(TAG, "Expected: " + savedHash);
-            Log.e(TAG, "Actual:   " + currentHash);
+            logE("⚠️ PATCH INTEGRITY CHECK FAILED!");
+            logE("Expected: " + savedHash);
+            logE("Actual:   " + currentHash);
         }
 
         return valid;
@@ -591,11 +666,11 @@ public class HotUpdateHelper {
         int tamperCount = prefs.getInt("tamper_count", 0) + 1;
         prefs.edit().putInt("tamper_count", tamperCount).apply();
 
-        Log.e(TAG, "⚠️ Patch tampered! Attempt: " + tamperCount + "/3");
+        logE("⚠️ Patch tampered! Attempt: " + tamperCount + "/3");
 
         // 超过限制，清除补丁
         if (tamperCount >= 3) {
-            Log.e(TAG, "⚠️ Too many tamper attempts, clearing patch");
+            logE("⚠️ Too many tamper attempts, clearing patch");
             prefs.edit()
                 .remove("applied_patch_id")
                 .remove("applied_patch_hash")
@@ -608,7 +683,7 @@ public class HotUpdateHelper {
         }
 
         // 尝试从加密存储恢复
-        Log.i(TAG, "Attempting to recover from encrypted storage...");
+        logI("Attempting to recover from encrypted storage...");
 
         try {
             java.io.File updateDir = new java.io.File(context.getFilesDir(), "update");
@@ -642,13 +717,13 @@ public class HotUpdateHelper {
 
             // 验证恢复结果
             if (verifyPatchIntegrity(appliedFile, prefs)) {
-                Log.i(TAG, "✅ Patch recovered successfully");
+                logI("✅ Patch recovered successfully");
                 prefs.edit().putInt("tamper_count", 0).apply();
                 return true;
             }
 
         } catch (Exception e) {
-            Log.e(TAG, "Failed to recover patch", e);
+            logE("Failed to recover patch", e);
         }
 
         return false;
@@ -675,7 +750,7 @@ public class HotUpdateHelper {
             }
             return sb.toString();
         } catch (Exception e) {
-            Log.e(TAG, "Failed to calculate SHA-256", e);
+            logE("Failed to calculate SHA-256", e);
             return null;
         }
     }
@@ -741,17 +816,17 @@ public class HotUpdateHelper {
             java.util.zip.ZipEntry sigEntry = zipFile.getEntry("signature.sig");
             zipFile.close();
             if (sigEntry != null) {
-                Log.d(TAG, "✓ 检测到 zip 内部的签名标记文件");
+                logD("✓ 检测到 zip 内部的签名标记文件");
                 return true;
             }
         } catch (Exception e) {
-            Log.d(TAG, "检查 zip 内部签名标记失败: " + e.getMessage());
+            logD("检查 zip 内部签名标记失败: " + e.getMessage());
         }
         
         // 方法3: 检查外部 .sig 文件（向后兼容）
         java.io.File signatureFile = new java.io.File(patchFile.getPath() + ".sig");
         if (signatureFile.exists()) {
-            Log.d(TAG, "✓ 检测到外部签名文件");
+            logD("✓ 检测到外部签名文件");
             return true;
         }
         
@@ -802,7 +877,7 @@ public class HotUpdateHelper {
             return decryptedZip;
             
         } catch (Exception e) {
-            Log.e(TAG, "Failed to decrypt ZIP password protected patch", e);
+            logE("Failed to decrypt ZIP password protected patch", e);
             return null;
         }
     }
@@ -1058,14 +1133,14 @@ public class HotUpdateHelper {
                 ZipPasswordManager zipPasswordManager = storage.getZipPasswordManager();
                 isZipPasswordEncrypted = zipPasswordManager.isEncrypted(patchFile);
             } catch (Exception e) {
-                Log.d(TAG, "检查 ZIP 密码加密失败: " + e.getMessage());
+                logD("检查 ZIP 密码加密失败: " + e.getMessage());
             }
         }
         
         boolean isEncrypted = isAesEncrypted || isZipPasswordEncrypted;
         
-        Log.d(TAG, "安全策略 - 要求签名: " + requireSignature + ", 要求加密: " + requireEncryption);
-        Log.d(TAG, "补丁状态 - AES加密: " + isAesEncrypted + ", ZIP密码加密: " + isZipPasswordEncrypted + ", 已加密: " + isEncrypted);
+        logD("安全策略 - 要求签名: " + requireSignature + ", 要求加密: " + requireEncryption);
+        logD("补丁状态 - AES加密: " + isAesEncrypted + ", ZIP密码加密: " + isZipPasswordEncrypted + ", 已加密: " + isEncrypted);
         
         // 对于加密文件，签名验证将在解密后进行
         // 这里只检查加密要求
@@ -1076,7 +1151,7 @@ public class HotUpdateHelper {
         // 对于未加密文件，直接检查签名
         if (!isEncrypted) {
             boolean hasSignature = checkHasSignature(patchFile);
-            Log.d(TAG, "补丁状态 - 有签名: " + hasSignature);
+            logD("补丁状态 - 有签名: " + hasSignature);
             
             if (requireSignature && !hasSignature) {
                 return "当前安全策略要求补丁必须签名！此补丁未签名，拒绝应用。";
@@ -1084,17 +1159,17 @@ public class HotUpdateHelper {
             
             // APK 签名验证（如果补丁有签名）- 使用 apksig
             if (hasSignature) {
-                Log.d(TAG, "检测到补丁签名，开始验证 APK 签名...");
+                logD("检测到补丁签名，开始验证 APK 签名...");
                 boolean signatureValid = patchSigner.verifyPatchSignatureMatchesApp(patchFile);
                 
                 if (!signatureValid) {
                     return "⚠️ APK 签名验证失败: " + patchSigner.getError();
                 }
-                Log.d(TAG, "✅ APK 签名验证通过");
+                logD("✅ APK 签名验证通过");
             }
         } else {
             // 对于加密文件，签名验证将在解密后进行
-            Log.d(TAG, "补丁已加密，签名验证将在解密后进行");
+            logD("补丁已加密，签名验证将在解密后进行");
         }
         
         return null;
@@ -1349,7 +1424,7 @@ public class HotUpdateHelper {
                     return;
                 }
                 
-                Log.d(TAG, "✓ ZIP 密码验证成功");
+                logD("✓ ZIP 密码验证成功");
                 
                 // 3. 保存自定义密码到 SharedPreferences（用于应用启动时解密）
                 android.content.SharedPreferences prefs = context.getSharedPreferences("patch_storage_prefs", Context.MODE_PRIVATE);
@@ -1422,7 +1497,7 @@ public class HotUpdateHelper {
                 // 2. 使用密码解密 AES 加密的补丁
                 tempDecryptedFile = securityManager.decryptPatchWithPassword(patchFile, aesPassword);
                 
-                Log.d(TAG, "✓ AES 解密成功（使用自定义密码）");
+                logD("✓ AES 解密成功（使用自定义密码）");
                 
                 // 3. 解密后验证签名（如果要求签名）
                 boolean requireSignature = securityPrefs.getBoolean(KEY_REQUIRE_SIGNATURE, false);
@@ -1569,7 +1644,7 @@ public class HotUpdateHelper {
             return decryptedZip;
             
         } catch (Exception e) {
-            Log.e(TAG, "解密 ZIP 失败", e);
+            logE("解密 ZIP 失败", e);
             if (callback != null) {
                 callback.onError("解密 ZIP 失败: " + e.getMessage());
             }
@@ -1607,7 +1682,7 @@ public class HotUpdateHelper {
                     return;
                 }
                 
-                Log.d(TAG, "✅ APK 签名验证通过（应用时）");
+                logD("✅ APK 签名验证通过（应用时）");
             }
             
             // 3. 创建 PatchInfo
@@ -1642,7 +1717,7 @@ public class HotUpdateHelper {
                 // 保存一个标记，表示这个补丁是 ZIP 密码保护的
                 android.content.SharedPreferences prefs = context.getSharedPreferences("patch_storage_prefs", Context.MODE_PRIVATE);
                 prefs.edit().putBoolean("is_zip_password_protected", true).apply();
-                Log.d(TAG, "✓ 补丁已保存为加密状态到 applied 目录");
+                logD("✓ 补丁已保存为加密状态到 applied 目录");
             }
             
             if (callback != null) {
@@ -1695,7 +1770,7 @@ public class HotUpdateHelper {
             }
             
         } catch (Exception e) {
-            Log.e(TAG, "应用补丁失败", e);
+            logE("应用补丁失败", e);
             if (callback != null) {
                 callback.onError("应用补丁失败: " + e.getMessage());
             }
@@ -1759,6 +1834,70 @@ public class HotUpdateHelper {
                 }
             }
         }
+    }
+    
+    /**
+     * 日志级别
+     */
+    public enum LogLevel {
+        DEBUG,
+        INFO,
+        WARN,
+        ERROR
+    }
+    
+    /**
+     * 日志回调接口
+     * 
+     * 使用示例：
+     * <pre>
+     * // 方式1：设置全局日志回调（所有 HotUpdateHelper 实例共享）
+     * HotUpdateHelper.setGlobalLogCallback(new HotUpdateHelper.LogCallback() {
+     *     {@literal @}Override
+     *     public void onLog(LogLevel level, String tag, String message) {
+     *         // 自定义日志处理，例如：
+     *         // - 写入文件
+     *         // - 上传到服务器
+     *         // - 显示在 UI 上
+     *         // - 过滤敏感信息
+     *         switch (level) {
+     *             case DEBUG:
+     *                 Log.d(tag, message);
+     *                 break;
+     *             case INFO:
+     *                 Log.i(tag, message);
+     *                 break;
+     *             case WARN:
+     *                 Log.w(tag, message);
+     *                 break;
+     *             case ERROR:
+     *                 Log.e(tag, message);
+     *                 // 上报错误到服务器
+     *                 reportError(message);
+     *                 break;
+     *         }
+     *     }
+     * });
+     * 
+     * // 方式2：设置实例日志回调（仅当前实例使用）
+     * HotUpdateHelper helper = new HotUpdateHelper(context);
+     * helper.setLogCallback(new HotUpdateHelper.LogCallback() {
+     *     {@literal @}Override
+     *     public void onLog(LogLevel level, String tag, String message) {
+     *         // 自定义日志处理
+     *     }
+     * });
+     * </pre>
+     */
+    public interface LogCallback {
+        /**
+         * 日志回调
+         * 
+         * @param level 日志级别
+         * @param tag 日志标签
+         * @param message 日志消息
+         */
+        void onLog(LogLevel level, String tag, String message);
     }
 }
 
