@@ -35,12 +35,12 @@ COPY --from=frontend-builder /app/frontend/dist ./public
 # 创建必要的目录
 RUN mkdir -p uploads backups
 
-# 暴露端口
-EXPOSE 3000
+# 暴露端口（使用环境变量，默认 3000）
+EXPOSE ${PORT:-3000}
 
-# 健康检查
+# 健康检查（使用环境变量端口）
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+  CMD node -e "const port = process.env.PORT || 3000; require('http').get('http://localhost:' + port + '/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
 # 启动命令
 CMD ["node", "server.js"]
