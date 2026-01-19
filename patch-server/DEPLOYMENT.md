@@ -15,9 +15,9 @@
 
 | 挂载路径 | 说明 | 大小建议 |
 |---------|------|---------|
+| `/app/data` | 数据库文件目录 | 500MB |
 | `/app/uploads` | 补丁文件存储 | 5GB+ |
 | `/app/backups` | 数据库备份 | 1GB |
-| `/app/database.db` | SQLite 数据库文件 | 100MB |
 
 5. 保存配置并重新部署
 
@@ -68,7 +68,7 @@ CORS_ORIGIN=*
 MAX_FILE_SIZE=104857600
 
 # 数据库路径
-DB_PATH=/app/database.db
+DB_PATH=/app/data/database.db
 
 # 上传目录
 UPLOAD_DIR=/app/uploads
@@ -131,9 +131,9 @@ services:
       - ADMIN_PASSWORD=admin123
       - NODE_ENV=production
     volumes:
-      - ./data/database.db:/app/database.db
-      - ./data/uploads:/app/uploads
-      - ./data/backups:/app/backups
+      - ./data:/app/data
+      - ./uploads:/app/uploads
+      - ./backups:/app/backups
     restart: unless-stopped
 ```
 

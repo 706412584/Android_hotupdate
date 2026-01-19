@@ -49,10 +49,10 @@ RUN wget -O ./tools/patch-cli.jar https://repo1.maven.org/maven2/io/github/70641
 COPY --from=frontend-builder /app/frontend/dist ./public
 
 # 创建其他必要的目录
-RUN mkdir -p uploads backups
+RUN mkdir -p data uploads backups
 
 # 声明数据卷（用于持久化数据）
-VOLUME ["/app/uploads", "/app/backups"]
+VOLUME ["/app/data", "/app/uploads", "/app/backups"]
 
 # 暴露端口（Zeabur 会通过环境变量 PORT 指定实际端口）
 EXPOSE 3000

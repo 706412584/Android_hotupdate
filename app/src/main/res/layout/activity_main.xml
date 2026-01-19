@@ -33,7 +33,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="热更新补丁工具 v1.4"
+                    android:text="热更新补丁工具 v1.5"
                     android:textSize="24sp"
                     android:textStyle="bold"
                     android:textColor="@color/text_primary"/>

@@ -22,7 +22,7 @@ async function restore(backupFile) {
 
   const backupDir = path.dirname(backupFile);
   const tempDir = path.join(backupDir, 'temp_restore_' + Date.now());
-  const dbPath = path.join(__dirname, '../../database.db');
+  const dbPath = path.join(__dirname, '../../data/database.db');
   const uploadsDir = path.join(__dirname, '../../uploads');
 
   try {

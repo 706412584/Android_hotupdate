@@ -4,7 +4,7 @@ const { exec } = require('child_process');
 const util = require('util');
 const execPromise = util.promisify(exec);
 
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, '../../database.db');
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, '../../data/database.db');
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, '../../uploads');
 const BACKUP_DIR = process.env.BACKUP_DIR || path.join(__dirname, '../../backups');
 
