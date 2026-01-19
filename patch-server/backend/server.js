@@ -115,6 +115,39 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🔌 实际监听端口: ${address.port}`);
   console.log(`🌐 监听地址: ${address.address}`);
   
+  // 检测 Java 环境
+  const { execSync } = require('child_process');
+  try {
+    const javaVersion = execSync('java -version 2>&1', { encoding: 'utf-8' });
+    const versionMatch = javaVersion.match(/version "?(\d+)/);
+    const majorVersion = versionMatch ? parseInt(versionMatch[1]) : 0;
+    
+    console.log('☕ Java 环境检测:');
+    console.log(`   版本: ${javaVersion.split('\n')[0]}`);
+    console.log(`   JAVA_HOME: ${process.env.JAVA_HOME || '未设置'}`);
+    
+    if (majorVersion >= 11) {
+      console.log('   ✅ Java 版本满足要求 (>= 11)');
+      
+      // 检测 patch-cli
+      const fs = require('fs');
+      const patchCliPath = path.join(__dirname, 'tools', 'patch-cli.jar');
+      if (fs.existsSync(patchCliPath)) {
+        console.log(`   ✅ patch-cli 工具已就绪: ${patchCliPath}`);
+        console.log('   🎉 自动生成补丁功能可用！');
+      } else {
+        console.log(`   ⚠️  patch-cli 工具未找到: ${patchCliPath}`);
+        console.log('   💡 请使用"上传补丁"功能手动上传补丁');
+      }
+    } else {
+      console.log(`   ⚠️  Java 版本过低 (需要 >= 11)，自动生成补丁功能不可用`);
+    }
+  } catch (error) {
+    console.log('☕ Java 环境检测:');
+    console.log('   ❌ Java 未安装或不可用');
+    console.log('   💡 自动生成补丁功能不可用，请使用"上传补丁"功能');
+  }
+  
   // 初始化定时任务
   const { initScheduler } = require('./src/utils/scheduler');
   initScheduler();

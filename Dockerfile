@@ -36,11 +36,14 @@ RUN npm install --production
 # 复制后端源代码
 COPY patch-server/backend/ ./
 
+# 复制 patch-cli 工具
+COPY patch-cli/build/libs/patch-cli-1.3.3-all.jar ./tools/patch-cli.jar
+
 # 从前端构建阶段复制构建产物
 COPY --from=frontend-builder /app/frontend/dist ./public
 
 # 创建必要的目录
-RUN mkdir -p uploads backups
+RUN mkdir -p uploads backups tools
 
 # 暴露端口（Zeabur 会通过环境变量 PORT 指定实际端口）
 EXPOSE 3000
