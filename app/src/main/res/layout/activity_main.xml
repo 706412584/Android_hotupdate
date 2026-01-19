@@ -233,6 +233,17 @@
                     android:backgroundTint="@color/info_background"
                     android:layout_marginTop="8dp"/>
 
+                <!-- 服务端测试按钮 -->
+                <Button
+                    android:id="@+id/btn_server_test"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:text="🌐 服务端测试"
+                    android:textSize="14sp"
+                    android:textColor="@color/btn_text_color_selector"
+                    android:background="@drawable/btn_accent_bg"
+                    android:layout_marginTop="8dp"/>
+
             </LinearLayout>
 
             <!-- 签名验证演示卡片 -->

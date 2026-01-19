@@ -178,6 +178,7 @@ public class MainActivity extends AppCompatActivity {
         btnConfigKeys = findViewById(R.id.btn_config_keys);
         btnSecuritySettings = findViewById(R.id.btn_security_settings);
         Button btnTestAssets = findViewById(R.id.btn_test_assets);
+        Button btnServerTest = findViewById(R.id.btn_server_test);
 
         btnGenerate.setOnClickListener(v -> startPatchGeneration());
         btnApply.setOnClickListener(v -> applyPatch());
@@ -189,6 +190,7 @@ public class MainActivity extends AppCompatActivity {
         btnClearPatch.setOnClickListener(v -> clearPatch());
         btnSecuritySettings.setOnClickListener(v -> showSecuritySettingsDialog());
         btnTestAssets.setOnClickListener(v -> testAssetsFile());
+        btnServerTest.setOnClickListener(v -> openServerTest());
         
         // 隐藏 RSA 密钥相关的按钮（已废弃，改用 APK 签名验证）
         btnVerifySuccess.setVisibility(View.GONE);
@@ -2004,6 +2006,14 @@ public class MainActivity extends AppCompatActivity {
         }
         
         tvInfo.setText(info.toString());
+    }
+
+    /**
+     * 打开服务端测试页面
+     */
+    private void openServerTest() {
+        Intent intent = new Intent(this, ServerTestActivity.class);
+        startActivity(intent);
     }
 
     /**

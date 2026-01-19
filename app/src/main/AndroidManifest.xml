@@ -8,6 +8,10 @@
 	<uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
 	                 tools:ignore="ScopedStorage" />
 	
+	<!-- 网络权限 -->
+	<uses-permission android:name="android.permission.INTERNET" />
+	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+	
 	<application
 			android:name=".PatchApplication"
 			android:allowBackup="true"
@@ -29,6 +33,12 @@
 				<category android:name="android.intent.category.LAUNCHER"/>
 			</intent-filter>
 		</activity>
+		
+		<!-- 服务端测试页面 -->
+		<activity
+				android:name=".ServerTestActivity"
+				android:exported="false"
+				android:label="服务端测试"/>
 	</application>
 
 </manifest>

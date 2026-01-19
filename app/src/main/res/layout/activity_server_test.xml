@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- 标题卡片 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/card_background"
+                android:orientation="vertical"
+                android:padding="20dp"
+                android:layout_marginBottom="12dp"
+                android:elevation="2dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🌐 服务端测试"
+                    android:textSize="24sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="测试热更新服务端 API"
+                    android:textSize="14sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginTop="4dp"/>
+
+                <!-- 进度条 -->
+                <ProgressBar
+                    android:id="@+id/progress_bar"
+                    style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="4dp"
+                    android:indeterminate="true"
+                    android:progressTint="@color/primary"
+                    android:visibility="gone"
+                    android:layout_marginTop="12dp"/>
+
+            </LinearLayout>
+
+            <!-- 服务器配置卡片 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/card_background"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:layout_marginBottom="12dp"
+                android:elevation="2dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⚙️ 服务器配置"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:layout_marginBottom="12dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="服务器地址"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginBottom="4dp"/>
+
+                <EditText
+                    android:id="@+id/et_server_url"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:hint="https://your-server.com"
+                    android:inputType="textUri"
+                    android:textSize="14sp"
+                    android:padding="12dp"
+                    android:background="@color/info_background"
+                    android:layout_marginBottom="12dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="用户名"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginBottom="4dp"/>
+
+                <EditText
+                    android:id="@+id/et_username"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:hint="admin"
+                    android:inputType="text"
+                    android:textSize="14sp"
+                    android:padding="12dp"
+                    android:background="@color/info_background"
+                    android:layout_marginBottom="12dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="密码"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginBottom="4dp"/>
+
+                <EditText
+                    android:id="@+id/et_password"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:hint="密码"
+                    android:inputType="textPassword"
+                    android:textSize="14sp"
+                    android:padding="12dp"
+                    android:background="@color/info_background"
+                    android:layout_marginBottom="12dp"/>
+
+                <Button
+                    android:id="@+id/btn_login"
+                    style="@style/Widget.AppCompat.Button.Borderless"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:text="🔐 登录"
+                    android:textSize="16sp"
+                    android:textColor="@color/btn_text_color_selector"
+                    android:background="@drawable/btn_primary_bg"/>
+
+            </LinearLayout>
+
+            <!-- API 测试卡片 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/card_background"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:layout_marginBottom="12dp"
+                android:elevation="2dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🔌 API 测试"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:layout_marginBottom="12dp"/>
+
+                <Button
+                    android:id="@+id/btn_get_apps"
+                    style="@style/Widget.AppCompat.Button.Borderless"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:text="📱 获取应用列表"
+                    android:textSize="14sp"
+                    android:textColor="@color/btn_text_color_selector"
+                    android:background="@drawable/btn_primary_bg"
+                    android:enabled="false"
+                    android:layout_marginBottom="8dp"/>
+
+                <Button
+                    android:id="@+id/btn_get_patches"
+                    style="@style/Widget.AppCompat.Button.Borderless"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:text="🔧 获取补丁列表"
+                    android:textSize="14sp"
+                    android:textColor="@color/btn_text_color_selector"
+                    android:background="@drawable/btn_primary_bg"
+                    android:enabled="false"
+                    android:layout_marginBottom="8dp"/>
+
+                <Button
+                    android:id="@+id/btn_check_update"
+                    style="@style/Widget.AppCompat.Button.Borderless"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:text="🔍 检查更新"
+                    android:textSize="14sp"
+                    android:textColor="@color/btn_text_color_selector"
+                    android:background="@drawable/btn_accent_bg"
+                    android:enabled="false"/>
+
+            </LinearLayout>
+
+            <!-- 结果显示卡片 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/card_background"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:elevation="2dp"
+                android:minHeight="200dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="📋 响应结果"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:layout_marginBottom="8dp"/>
+
+                <TextView
+                    android:id="@+id/tv_result"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="点击上方按钮测试 API"
+                    android:textSize="13sp"
+                    android:textColor="@color/text_secondary"
+                    android:fontFamily="monospace"
+                    android:background="@color/info_background"
+                    android:padding="12dp"
+                    android:lineSpacingExtra="4dp"/>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </ScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
