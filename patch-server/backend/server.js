@@ -9,7 +9,14 @@ const { loggerMiddleware } = require('./src/middleware/logger');
 require('dotenv').config();
 
 const app = express();
+// 调试：打印所有端口相关的环境变量
+console.log('🔍 环境变量调试:');
+console.log('  WEB_PORT:', process.env.WEB_PORT);
+console.log('  PORT:', process.env.PORT);
+console.log('  所有环境变量:', Object.keys(process.env).filter(k => k.includes('PORT')));
+
 const PORT = process.env.WEB_PORT || process.env.PORT || 3000;
+console.log('✅ 最终使用端口:', PORT);
 
 // 中间件
 app.use(helmet());
