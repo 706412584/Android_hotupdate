@@ -29,6 +29,11 @@ A complete Android hot update solution that supports **DEX, Resources, SO librar
 - **[Patch Format](docs/PATCH_FORMAT.md)** - Patch package structure
 - **[Release Guide](JITPACK_RELEASE.md)** - How to release new versions
 
+## 🌿 Branch Description
+
+- **main** - Main branch with latest stable code
+- **server** - Server deployment branch, Zeabur auto-deploy source (push to this branch only when updating server)
+
 ## 🌐 Online Service
 
 We provide a free patch hosting service for testing and learning:
