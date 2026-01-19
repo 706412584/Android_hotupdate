@@ -6,7 +6,7 @@ const db = require('../models/database');
 // 检查更新
 router.get('/check-update', async (req, res) => {
   try {
-    const { version, deviceId, deviceModel, osVersion, appId } = req.query;
+    const { version, deviceId, deviceModel, osVersion, appId, currentPatchVersion } = req.query;
 
     if (!version) {
       return res.status(400).json({ error: '版本号不能为空' });
@@ -22,13 +22,16 @@ router.get('/check-update', async (req, res) => {
       `, [appId]);
     }
 
+    // 确定当前版本（优先使用补丁版本，否则使用应用版本）
+    const currentVersion = currentPatchVersion || version;
+
     // 查找最新的可用补丁
     let query = `
       SELECT p.* FROM patches p
       WHERE p.status = 'active'
         AND p.base_version = ?
     `;
-    const params = [version];
+    const params = [currentVersion];
 
     // 如果提供了 appId，只查找该应用的补丁
     if (appId && appConfig) {
@@ -193,6 +196,62 @@ router.post('/report', async (req, res) => {
   } catch (error) {
     console.error('上报失败:', error);
     res.status(500).json({ error: '上报失败' });
+  }
+});
+
+// 获取当前补丁信息
+router.get('/current-patch', async (req, res) => {
+  try {
+    const { appId, deviceId } = req.query;
+
+    if (!appId || !deviceId) {
+      return res.status(400).json({ error: '应用 ID 和设备 ID 不能为空' });
+    }
+
+    // 查找该设备最近成功应用的补丁
+    const download = await db.get(`
+      SELECT 
+        d.patch_id,
+        d.app_version,
+        d.created_at as applied_at,
+        p.patch_id as patch_identifier,
+        p.version as patch_version,
+        p.base_version,
+        p.description,
+        p.file_size,
+        p.md5
+      FROM downloads d
+      JOIN patches p ON d.patch_id = p.id
+      WHERE d.device_id = ?
+        AND p.app_id = (SELECT id FROM apps WHERE app_id = ?)
+        AND d.success = 1
+      ORDER BY d.created_at DESC
+      LIMIT 1
+    `, [deviceId, appId]);
+
+    if (!download) {
+      return res.json({
+        hasAppliedPatch: false,
+        message: '未找到已应用的补丁'
+      });
+    }
+
+    res.json({
+      hasAppliedPatch: true,
+      patch: {
+        patchId: download.patch_identifier,
+        patchVersion: download.patch_version,
+        baseVersion: download.base_version,
+        appVersion: download.app_version,
+        description: download.description,
+        fileSize: download.file_size,
+        md5: download.md5,
+        appliedAt: download.applied_at
+      }
+    });
+  } catch (error) {
+    console.error('获取当前补丁信息失败:', error);
+    res.status(500).json({ error: '获取当前补丁信息失败' });
   }
 });
 
