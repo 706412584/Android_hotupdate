@@ -557,6 +557,8 @@ const goToPatches = () => {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
 }
 
 @media (max-width: 768px) {
@@ -570,10 +572,12 @@ const goToPatches = () => {
   
   .quick-actions {
     flex-direction: column;
+    align-items: stretch;
   }
   
   .quick-actions .el-button {
     width: 100%;
+    justify-content: center;
   }
 }
 </style>

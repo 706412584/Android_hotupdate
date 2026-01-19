@@ -1,6 +1,19 @@
 <template>
   <el-container class="layout-container">
-    <el-aside :width="collapsed ? '64px' : '240px'" class="sidebar">
+    <!-- 移动端遮罩层 -->
+    <transition name="fade">
+      <div 
+        v-if="showMobileSidebar" 
+        class="sidebar-overlay"
+        @click="showMobileSidebar = false"
+      ></div>
+    </transition>
+    
+    <el-aside 
+      :width="collapsed ? '64px' : '240px'" 
+      class="sidebar"
+      :class="{ 'mobile-show': showMobileSidebar }"
+    >
       <div class="logo">
         <el-icon v-if="collapsed" :size="28" color="#667eea"><Box /></el-icon>
         <h2 v-else>补丁管理</h2>
@@ -11,6 +24,7 @@
         :collapse="collapsed"
         router
         class="sidebar-menu"
+        @select="handleMenuSelect"
       >
         <el-menu-item
           v-for="route in visibleRoutes"
@@ -26,7 +40,7 @@
     <el-container>
       <el-header class="header">
         <div class="header-left">
-          <el-button text @click="collapsed = !collapsed">
+          <el-button text @click="toggleSidebar" class="menu-toggle">
             <el-icon :size="20"><Fold v-if="!collapsed" /><Expand v-else /></el-icon>
           </el-button>
           
@@ -173,6 +187,7 @@ import api from '../api';
 const router = useRouter();
 const route = useRoute();
 const collapsed = ref(false);
+const showMobileSidebar = ref(false);
 const showNotifications = ref(false);
 const notificationTab = ref('all');
 const notifications = ref([]);
@@ -181,6 +196,25 @@ const notificationsLoading = ref(false);
 const searchQuery = ref('');
 
 const user = ref(JSON.parse(localStorage.getItem('user') || '{}'));
+
+// 检测是否为移动端
+const isMobile = () => window.innerWidth <= 768;
+
+// 切换侧边栏
+const toggleSidebar = () => {
+  if (isMobile()) {
+    showMobileSidebar.value = !showMobileSidebar.value;
+  } else {
+    collapsed.value = !collapsed.value;
+  }
+};
+
+// 移动端菜单选择后自动关闭
+const handleMenuSelect = () => {
+  if (isMobile()) {
+    showMobileSidebar.value = false;
+  }
+};
 
 const allRoutes = [
   { path: '/apps', meta: { title: '我的应用', icon: 'Box' } },
@@ -542,6 +576,26 @@ const handleCommand = async (command) => {
   margin-left: 16px;
 }
 
+/* 移动端遮罩层 */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+}
+
+/* 遮罩层淡入淡出动画 */
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.3s;
+}
+
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+}
+
 @media (max-width: 768px) {
   .layout-container {
     overflow-x: hidden;
@@ -553,11 +607,13 @@ const handleCommand = async (command) => {
     top: 0;
     bottom: 0;
     z-index: 1000;
+    width: 240px !important;
     transform: translateX(-100%);
-    transition: transform 0.3s;
+    transition: transform 0.3s ease-in-out;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
   }
   
-  .sidebar.show {
+  .sidebar.mobile-show {
     transform: translateX(0);
   }
   
@@ -570,13 +626,25 @@ const handleCommand = async (command) => {
     min-width: 0;
   }
   
+  .menu-toggle {
+    flex-shrink: 0;
+  }
+  
   .global-search {
-    width: 150px;
+    width: 120px;
     margin-left: 8px;
   }
   
   .header-right {
     gap: 8px;
+  }
+  
+  .header-right .username {
+    display: none;
+  }
+  
+  .header-right .el-tag {
+    display: none;
   }
   
   .main-content {
@@ -585,9 +653,13 @@ const handleCommand = async (command) => {
     overflow-x: hidden;
   }
   
-  /* 移动端隐藏侧边栏，使用汉堡菜单 */
+  /* 移动端侧边栏始终隐藏，通过 mobile-show 类显示 */
   .el-aside {
     width: 0 !important;
+  }
+  
+  .el-aside.mobile-show {
+    width: 240px !important;
   }
 }
 

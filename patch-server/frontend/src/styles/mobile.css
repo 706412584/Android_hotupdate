@@ -7,6 +7,37 @@
 
 /* 移动端适配 */
 @media (max-width: 768px) {
+  /* Element Plus 标签页优化 - 支持横向滚动 */
+  .el-tabs__nav-wrap {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .el-tabs__nav-wrap::-webkit-scrollbar {
+    height: 3px;
+  }
+  
+  .el-tabs__nav-wrap::-webkit-scrollbar-thumb {
+    background: #dcdfe6;
+    border-radius: 3px;
+  }
+  
+  .el-tabs__nav {
+    white-space: nowrap;
+    display: flex;
+  }
+  
+  .el-tabs__item {
+    flex-shrink: 0;
+    font-size: 13px;
+    padding: 0 12px;
+  }
+  
+  .el-tabs__active-bar {
+    transition: transform 0.3s;
+  }
+  
   /* Element Plus 表格优化 */
   .el-table {
     font-size: 12px;
@@ -140,12 +171,6 @@
     font-size: 12px;
   }
   
-  /* 标签页优化 */
-  .el-tabs__item {
-    font-size: 13px;
-    padding: 0 12px;
-  }
-  
   /* 步骤条优化 */
   .el-step__title {
     font-size: 13px;
@@ -153,6 +178,24 @@
   
   .el-step__description {
     font-size: 11px;
+  }
+  
+  /* 应用详情页标签页优化 */
+  .app-tabs .el-tabs__header {
+    margin-bottom: 16px;
+  }
+  
+  .app-tabs .el-tabs__nav-scroll {
+    overflow-x: auto;
+  }
+  
+  /* 通知抽屉优化 */
+  .el-drawer {
+    width: 85% !important;
+  }
+  
+  .el-drawer__body {
+    padding: 16px;
   }
 }
 
