@@ -673,32 +673,6 @@
       </template>
     </el-dialog>
 
-    <!-- 灰度发布配置对话框 -->
-    <el-dialog v-model="showRolloutDialogVisible" title="灰度发布配置" width="600px">
-      <el-form :model="rolloutForm" label-width="120px">
-        <el-form-item label="补丁版本">
-          <el-input v-model="rolloutForm.version" disabled />
-        </el-form-item>
-        
-        <el-form-item label="灰度百分比">
-          <el-slider 
-            v-model="rolloutForm.percentage" 
-            :marks="{ 0: '0%', 25: '25%', 50: '50%', 75: '75%', 100: '100%' }"
-            :step="5"
-          />
-          <div style="text-align: center; margin-top: 8px; font-size: 14px; color: #666;">
-            当前灰度: <strong style="color: #d4af7a; font-size: 18px;">{{ rolloutForm.percentage }}%</strong>
-          </div>
-        </el-form-item>
-
-        <el-alert
-          :title="getRolloutTip()"
-          type="info"
-          :closable="false"
-          style="margin-bottom: 20px;"
-        >
-          <p style="margin: 0; font-size: 13px;">
-
     <!-- 上传版本对话框 -->
     <el-dialog v-model="showUploadVersionDialog" title="上传新版本" width="600px">
       <el-form :model="versionForm" label-width="120px">
