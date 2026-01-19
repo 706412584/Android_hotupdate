@@ -1773,6 +1773,32 @@ public class HotUpdateHelper {
             // 3. 创建 PatchInfo
             PatchInfo patchInfo = createPatchInfo(actualPatchFile);
             
+            // 3.5 检查是否重复应用相同补丁（防止 SIGBUS 崩溃）
+            PatchInfo currentPatchInfo = storage.getAppliedPatchInfo();
+            if (currentPatchInfo != null && 
+                patchInfo.getMd5() != null && 
+                patchInfo.getMd5().equals(currentPatchInfo.getMd5())) {
+                logI("⚠️ 检测到重复补丁（MD5: " + patchInfo.getMd5().substring(0, 8) + "...），跳过应用以防止崩溃");
+                
+                if (callback != null) {
+                    callback.onProgress(100, "补丁已应用，无需重复操作");
+                    
+                    // 创建成功结果
+                    PatchResult result = new PatchResult();
+                    result.success = true;
+                    result.patchId = currentPatchInfo.getPatchId();
+                    result.patchVersion = currentPatchInfo.getPatchVersion();
+                    result.patchSize = originalPatchFile.length();
+                    result.dexInjected = DexPatcher.isSupported();
+                    result.soLoaded = false;
+                    result.resourcesLoaded = hasResourcePatch(actualPatchFile);
+                    result.needsRestart = false; // 已经应用过，不需要重启
+                    
+                    callback.onSuccess(result);
+                }
+                return;
+            }
+            
             if (callback != null) {
                 callback.onProgress(25, "验证补丁文件...");
             }

@@ -414,26 +414,32 @@ public class JarSigner {
     
     /**
      * 读取 JAR 文件中的所有条目
+     * 使用 ZipFile API 而不是 ZipInputStream 以支持所有 ZIP 格式
      */
     private Map<String, byte[]> readJarEntries(File jarFile) throws IOException {
         Map<String, byte[]> entries = new LinkedHashMap<>();
         
-        try (ZipInputStream zis = new ZipInputStream(new FileInputStream(jarFile))) {
-            ZipEntry entry;
-            while ((entry = zis.getNextEntry()) != null) {
+        try (java.util.zip.ZipFile zipFile = new java.util.zip.ZipFile(jarFile)) {
+            java.util.Enumeration<? extends ZipEntry> zipEntries = zipFile.entries();
+            
+            while (zipEntries.hasMoreElements()) {
+                ZipEntry entry = zipEntries.nextElement();
+                
                 // 跳过目录和旧的签名文件
                 if (entry.isDirectory() || entry.getName().startsWith("META-INF/")) {
                     continue;
                 }
                 
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                byte[] buffer = new byte[8192];
-                int len;
-                while ((len = zis.read(buffer)) > 0) {
-                    baos.write(buffer, 0, len);
+                // 读取文件内容
+                try (java.io.InputStream is = zipFile.getInputStream(entry)) {
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    byte[] buffer = new byte[8192];
+                    int len;
+                    while ((len = is.read(buffer)) > 0) {
+                        baos.write(buffer, 0, len);
+                    }
+                    entries.put(entry.getName(), baos.toByteArray());
                 }
-                
-                entries.put(entry.getName(), baos.toByteArray());
             }
         }
         
@@ -745,8 +751,21 @@ public class JarSigner {
             
             // 4. 写入所有原始文件
             for (Map.Entry<String, byte[]> entry : entries.entrySet()) {
-                zos.putNextEntry(new ZipEntry(entry.getKey()));
-                zos.write(entry.getValue());
+                String name = entry.getKey();
+                byte[] data = entry.getValue();
+                
+                ZipEntry zipEntry = new ZipEntry(name);
+                
+                // resources.arsc 必须使用 STORE 模式（不压缩）
+                if ("resources.arsc".equals(name)) {
+                    zipEntry.setMethod(ZipEntry.STORED);
+                    zipEntry.setSize(data.length);
+                    zipEntry.setCompressedSize(data.length);
+                    zipEntry.setCrc(calculateCrc32(data));
+                }
+                
+                zos.putNextEntry(zipEntry);
+                zos.write(data);
                 zos.closeEntry();
             }
         }
@@ -758,6 +777,15 @@ public class JarSigner {
         if (!tempFile.renameTo(jarFile)) {
             throw new IOException("Failed to rename temporary file");
         }
+    }
+    
+    /**
+     * 计算 CRC32 校验和
+     */
+    private long calculateCrc32(byte[] data) {
+        java.util.zip.CRC32 crc = new java.util.zip.CRC32();
+        crc.update(data);
+        return crc.getValue();
     }
     
     /**

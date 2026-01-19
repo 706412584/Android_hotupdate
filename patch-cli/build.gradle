@@ -1,7 +1,11 @@
 plugins {
     id 'java'
     id 'application'
+    id 'maven-publish'
 }
+
+// 应用通用的 Maven 发布配置
+apply from: "${rootProject.projectDir}/maven-publish.gradle"
 
 java {
     sourceCompatibility = JavaVersion.VERSION_11
@@ -54,6 +58,11 @@ tasks.register('fatJar', Jar) {
     from {
         configurations.runtimeClasspath.findAll { it.name.endsWith('jar') }.collect { zipTree(it) }
     }
+    
+    // Exclude signature files to avoid conflicts
+    exclude 'META-INF/*.SF'
+    exclude 'META-INF/*.DSA'
+    exclude 'META-INF/*.RSA'
 }
 
 // Build fat JAR when running 'build' task
@@ -67,5 +76,31 @@ test {
     testLogging {
         events "passed", "skipped", "failed"
         showStandardStreams = true
+    }
+}
+
+// Maven 发布配置
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            groupId = pomGroupId
+            artifactId = 'patch-cli'
+            version = pomVersion
+            
+            // 发布 fat JAR（包含所有依赖）
+            artifact(fatJar) {
+                classifier = 'all'
+            }
+            
+            // 也发布普通 JAR
+            from components.java
+            
+            // 配置 POM
+            pom {
+                configurePom(it)
+                name = 'Android Hot Update - Patch CLI'
+                description = 'Command-line tool for generating Android hot update patches'
+            }
+        }
     }
 }

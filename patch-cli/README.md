@@ -6,22 +6,33 @@
 
 - **独立运行**: 无需 Android 环境，可在任何 Java 环境运行
 - **完整功能**: 支持所有补丁生成功能
+- **签名支持**: 支持使用 JKS/PKCS12 密钥库对补丁进行签名
 - **灵活配置**: 通过命令行参数配置各种选项
 - **进度显示**: 控制台实时显示生成进度
 
 ## 安装
 
-### 下载
-
-从 Release 页面下载 `patch-cli.jar`。
-
-### 编译
+### 方式一：从 Maven Central 下载（推荐）
 
 ```bash
-./gradlew :patch-cli:shadowJar
+# 下载最新版本的 fat JAR
+wget https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.3.2/patch-cli-1.3.2-all.jar
+
+# 或使用 curl
+curl -O https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.3.2/patch-cli-1.3.2-all.jar
 ```
 
-生成的 JAR 文件位于 `patch-cli/build/libs/patch-cli-all.jar`。
+### 方式二：从 Release 页面下载
+
+从 [GitHub Releases](https://github.com/706412584/Android_hotupdate/releases) 下载 `patch-cli-all.jar`。
+
+### 方式三：自己编译
+
+```bash
+./gradlew :patch-cli:fatJar
+```
+
+生成的 JAR 文件位于 `patch-cli/build/libs/patch-cli-1.3.2-all.jar`。
 
 ## 使用方法
 
@@ -31,11 +42,14 @@
 java -jar patch-cli.jar \
   --base app-v1.0.apk \
   --new app-v1.1.apk \
-  --output patch-v1.1.patch \
+  --output patch-v1.1.zip \
   --keystore keystore.jks \
+  --keystore-password password \
   --key-alias patch \
   --key-password password
 ```
+
+**注意**: 建议在生产环境中始终使用签名，以确保补丁的安全性和完整性。
 
 ### 完整参数
 
@@ -71,6 +85,19 @@ java -jar patch-cli.jar \
 
 ### 示例
 
+#### 生成带签名的补丁（推荐）
+
+```bash
+java -jar patch-cli.jar \
+  --base old.apk \
+  --new new.apk \
+  --output patch.zip \
+  --keystore app.jks \
+  --keystore-password 123456 \
+  --key-alias myapp \
+  --key-password 123456
+```
+
 #### 使用 Java 引擎生成补丁
 
 ```bash
@@ -91,7 +118,7 @@ java -jar patch-cli.jar \
   --mode bsdiff
 ```
 
-#### 不签名生成补丁
+#### 不签名生成补丁（仅用于测试）
 
 ```bash
 java -jar patch-cli.jar \
@@ -99,6 +126,8 @@ java -jar patch-cli.jar \
   --new new.apk \
   --output patch.zip
 ```
+
+**警告**: 未签名的补丁在启用签名验证的生产环境中会被拒绝。
 
 #### 显示详细日志
 

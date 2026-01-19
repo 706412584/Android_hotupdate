@@ -46,7 +46,7 @@ import java.io.InputStream;
  */
 public class MainActivity extends AppCompatActivity {
 
-    private static final String TAG = "PatchDemo";
+    private static final String TAG = "PatchDemo-v1.4.1";
     private static final int PERMISSION_REQUEST_CODE = 100;
     
     // 安全策略配置
@@ -208,7 +208,7 @@ public class MainActivity extends AppCompatActivity {
      * v1.2 基准版本
      */
     private String getHotUpdateTestInfo() {
-        return "🔥🔥🔥 热更新测试 v1.2 - 这是基准版本！";
+        return "热更新测试 v1.3 - 这是基准版本！";
     }
 
     private void showSystemInfo() {

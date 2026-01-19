@@ -435,6 +435,16 @@ public class PatchStorage {
         
         try {
             File appliedFile = getAppliedPatchFile();
+            
+            // 确保父目录存在
+            File parentDir = appliedFile.getParentFile();
+            if (parentDir != null && !parentDir.exists()) {
+                if (!parentDir.mkdirs()) {
+                    Log.e(TAG, "Failed to create applied directory");
+                    return null;
+                }
+            }
+            
             if (appliedFile.exists()) {
                 appliedFile.delete();
             }

@@ -92,11 +92,22 @@ public class PatchApplier {
             return false;
         }
         
-        // 检查是否已经应用了相同的补丁
+        // 检查是否已经应用了相同的补丁（通过 MD5 校验）
         String currentAppliedId = storage.getAppliedPatchId();
         if (patchId.equals(currentAppliedId)) {
             Log.w(TAG, "Patch already applied: " + patchId);
-            return true;
+            
+            // 额外验证：检查补丁文件的 MD5 是否匹配
+            PatchInfo currentPatchInfo = storage.getAppliedPatchInfo();
+            if (currentPatchInfo != null && 
+                patchInfo.getMd5() != null && 
+                patchInfo.getMd5().equals(currentPatchInfo.getMd5())) {
+                Log.i(TAG, "Patch MD5 matches, skipping duplicate application to prevent crash");
+                return true;
+            }
+            
+            // 如果 MD5 不匹配，说明是不同的补丁，继续应用
+            Log.w(TAG, "Patch ID matches but MD5 differs, applying new patch");
         }
         
         try {

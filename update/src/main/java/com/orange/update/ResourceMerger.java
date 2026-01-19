@@ -38,7 +38,9 @@ public class ResourceMerger {
      * @return 是否成功
      */
     public static boolean mergeResources(Context context, File patchFile, File outputFile) {
-        String originalApkPath = context.getPackageResourcePath();
+        // 始终使用真正的原始 APK，而不是之前生成的 merged_resources.apk
+        // 这样可以避免在第二次应用补丁时，同时读写同一个文件导致的 SIGBUS 崩溃
+        String originalApkPath = context.getApplicationInfo().sourceDir;
         
         Log.d(TAG, "Merging resources:");
         Log.d(TAG, "  Original APK: " + originalApkPath);

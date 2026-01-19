@@ -58,9 +58,19 @@ public class PatchPacker {
                 parentDir.mkdirs();
             }
 
-            // 删除已存在的文件
+            // 删除已存在的文件（改进的删除逻辑）
             if (outputFile.exists()) {
-                outputFile.delete();
+                // 尝试删除，如果失败则等待后重试
+                if (!outputFile.delete()) {
+                    // 强制垃圾回收，释放可能的文件句柄
+                    System.gc();
+                    Thread.sleep(100);
+                    
+                    // 再次尝试删除
+                    if (!outputFile.delete()) {
+                        throw new PatchPackException("cannot delete old zip file");
+                    }
+                }
             }
 
             // 创建 zip 文件
@@ -99,6 +109,9 @@ public class PatchPacker {
 
             return outputFile;
 
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new PatchPackException("Failed to pack patch: " + e.getMessage(), e);
         } catch (IOException e) {
             throw new PatchPackException("Failed to pack patch: " + e.getMessage(), e);
         }

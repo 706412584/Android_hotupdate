@@ -4,7 +4,7 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![API](https://img.shields.io/badge/API-21%2B-brightgreen.svg)](https://android-arsenal.com/api?level=21)
-[![JitPack](https://jitpack.io/v/706412584/Android_hotupdate.svg)](https://jitpack.io/#706412584/Android_hotupdate)
+
 
 一套完整的 Android 热更新解决方案，支持 **DEX、资源、SO 库、Assets** 的热更新，无需重新安装 APK。
 
@@ -47,6 +47,25 @@ dependencies {
 
 ### 2. 生成补丁
 
+**方式一：使用命令行工具（推荐用于 CI/CD）**
+
+```bash
+# 下载 patch-cli
+wget https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.3.2/patch-cli-1.3.2-all.jar
+
+# 生成带签名的补丁
+java -jar patch-cli-1.3.2-all.jar \
+  --base app-v1.0.apk \
+  --new app-v1.1.apk \
+  --output patch.zip \
+  --keystore keystore.jks \
+  --keystore-password <password> \
+  --key-alias <alias> \
+  --key-password <password>
+```
+
+**方式二：使用 Android SDK（设备端生成）**
+
 ```java
 AndroidPatchGenerator generator = new AndroidPatchGenerator.Builder(context)
     .baseApk(baseApkFile)
@@ -64,6 +83,24 @@ AndroidPatchGenerator generator = new AndroidPatchGenerator.Builder(context)
 
 generator.generateInBackground();
 ```
+
+**方式三：使用 Gradle 插件（构建时生成）**
+
+```gradle
+patchGenerator {
+    baselineApk = file("baseline/app-v1.0.apk")
+    outputDir = file("build/patch")
+    
+    signing {
+        keystoreFile = file("keystore.jks")
+        keystorePassword = "password"
+        keyAlias = "alias"
+        keyPassword = "password"
+    }
+}
+```
+
+> 📖 **详细说明**：[patch-cli 使用文档](patch-cli/README.md)
 
 ### 3. 应用补丁
 
@@ -240,7 +277,7 @@ if (intent != null) {
 ├── patch-core/              # 核心库 - 补丁生成引擎
 ├── patch-native/            # Native 库 - C/C++ 高性能引擎
 ├── patch-generator-android/ # Android SDK - 设备端生成
-├── patch-cli/               # 命令行工具 - PC/服务器端
+├── patch-cli/               # 命令行工具 - PC/服务器端（可独立下载）
 ├── patch-gradle-plugin/     # Gradle 插件 - 构建集成
 ├── update/                  # 热更新 SDK - 补丁应用
 └── app/                     # Demo 应用
@@ -252,7 +289,7 @@ if (intent != null) {
 | **update** | 热更新 SDK，补丁应用和加载 | - |
 | **patch-core** | 核心引擎，APK 解析、差异比较 | [README](patch-core/README.md) |
 | **patch-native** | Native SO 库，BsDiff 算法 | [README](patch-native/README.md) |
-| **patch-cli** | 命令行工具，独立运行 | [README](patch-cli/README.md) |
+| **patch-cli** | 命令行工具，独立运行，[可直接下载](https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.3.2/patch-cli-1.3.2-all.jar) | [README](patch-cli/README.md) |
 | **patch-gradle-plugin** | Gradle 插件，构建集成 | [README](patch-gradle-plugin/README.md) |
 
 ## 💡 热更新原理
