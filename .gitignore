@@ -45,7 +45,7 @@ uploads/
 # Signing files
 *.jks
 *.keystore
-
+/login-demos-main/
 # Maven Central 发布凭证和临时文件
 gradle.properties
 maven-central/secring.gpg

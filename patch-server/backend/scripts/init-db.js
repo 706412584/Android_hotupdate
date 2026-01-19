@@ -5,8 +5,8 @@ async function initDatabase() {
   try {
     console.log('🔧 初始化数据库...');
 
-    // 等待一下让 database.js 中的表创建完成
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // 等待更长时间让 database.js 中的表创建完成
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     const db = require('../src/models/database');
 

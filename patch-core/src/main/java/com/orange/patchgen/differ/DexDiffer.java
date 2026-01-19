@@ -372,15 +372,35 @@ public class DexDiffer {
 
     /**
      * 获取方法实现的哈希
+     * 
+     * 包含指令序列和字符串常量，确保字符串修改也能被检测到
      */
     private String getImplementationHash(MethodImplementation impl) {
         StringBuilder sb = new StringBuilder();
         sb.append(impl.getRegisterCount());
         sb.append("|");
 
-        // 指令序列
+        // 指令序列（包含字符串常量）
         for (Instruction instruction : impl.getInstructions()) {
             sb.append(instruction.getOpcode().name);
+            
+            // 提取字符串常量
+            // const-string 和 const-string/jumbo 指令包含字符串引用
+            if (instruction instanceof org.jf.dexlib2.iface.instruction.ReferenceInstruction) {
+                org.jf.dexlib2.iface.instruction.ReferenceInstruction refInst = 
+                    (org.jf.dexlib2.iface.instruction.ReferenceInstruction) instruction;
+                org.jf.dexlib2.iface.reference.Reference ref = refInst.getReference();
+                
+                // 如果是字符串引用，包含字符串内容
+                if (ref instanceof org.jf.dexlib2.iface.reference.StringReference) {
+                    org.jf.dexlib2.iface.reference.StringReference strRef = 
+                        (org.jf.dexlib2.iface.reference.StringReference) ref;
+                    sb.append("[STR:");
+                    sb.append(strRef.getString());
+                    sb.append("]");
+                }
+            }
+            
             sb.append(";");
         }
 

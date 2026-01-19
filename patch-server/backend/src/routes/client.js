@@ -6,25 +6,48 @@ const db = require('../models/database');
 // 检查更新
 router.get('/check-update', async (req, res) => {
   try {
-    const { version, deviceId, deviceModel, osVersion } = req.query;
+    const { version, deviceId, deviceModel, osVersion, appId } = req.query;
 
     if (!version) {
       return res.status(400).json({ error: '版本号不能为空' });
     }
 
+    // 获取应用配置（如果提供了 appId）
+    let appConfig = null;
+    if (appId) {
+      appConfig = await db.get(`
+        SELECT require_signature, require_encryption
+        FROM apps
+        WHERE app_id = ? AND status = 'active'
+      `, [appId]);
+    }
+
     // 查找最新的可用补丁
-    const patch = await db.get(`
-      SELECT * FROM patches
-      WHERE status = 'active'
-        AND base_version = ?
-      ORDER BY created_at DESC
-      LIMIT 1
-    `, [version]);
+    let query = `
+      SELECT p.* FROM patches p
+      WHERE p.status = 'active'
+        AND p.base_version = ?
+    `;
+    const params = [version];
+
+    // 如果提供了 appId，只查找该应用的补丁
+    if (appId && appConfig) {
+      query += ` AND p.app_id = (SELECT id FROM apps WHERE app_id = ?)`;
+      params.push(appId);
+    }
+
+    query += ` ORDER BY p.created_at DESC LIMIT 1`;
+
+    const patch = await db.get(query, params);
 
     if (!patch) {
       return res.json({
         hasUpdate: false,
-        message: '当前已是最新版本'
+        message: '当前已是最新版本',
+        securityConfig: appConfig ? {
+          requireSignature: appConfig.require_signature === 1,
+          requireEncryption: appConfig.require_encryption === 1
+        } : null
       });
     }
 
@@ -37,7 +60,11 @@ router.get('/check-update', async (req, res) => {
         if (percentage >= patch.rollout_percentage) {
           return res.json({
             hasUpdate: false,
-            message: '当前已是最新版本'
+            message: '当前已是最新版本',
+            securityConfig: appConfig ? {
+              requireSignature: appConfig.require_signature === 1,
+              requireEncryption: appConfig.require_encryption === 1
+            } : null
           });
         }
       }
@@ -57,7 +84,11 @@ router.get('/check-update', async (req, res) => {
         size: patch.file_size,
         description: patch.description,
         forceUpdate: patch.force_update === 1
-      }
+      },
+      securityConfig: appConfig ? {
+        requireSignature: appConfig.require_signature === 1,
+        requireEncryption: appConfig.require_encryption === 1
+      } : null
     });
   } catch (error) {
     console.error('检查更新失败:', error);

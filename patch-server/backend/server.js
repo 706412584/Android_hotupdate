@@ -5,6 +5,7 @@ const morgan = require('morgan');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
+const { loggerMiddleware } = require('./src/middleware/logger');
 require('dotenv').config();
 
 const app = express();
@@ -29,15 +30,26 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
+// 日志中间件
+app.use(loggerMiddleware);
+
 // 静态文件服务（补丁下载）
 app.use('/downloads', express.static(path.join(__dirname, 'uploads')));
 
 // 路由
 app.use('/api/auth', require('./src/routes/auth'));
+app.use('/api/apps', require('./src/routes/apps'));
 app.use('/api/patches', require('./src/routes/patches'));
+app.use('/api/generate', require('./src/routes/generate'));
 app.use('/api/client', require('./src/routes/client'));
 app.use('/api/stats', require('./src/routes/stats'));
 app.use('/api/users', require('./src/routes/users'));
+app.use('/api/logs', require('./src/routes/logs'));
+app.use('/api/encryption', require('./src/routes/encryption'));
+app.use('/api/scheduler', require('./src/routes/scheduler'));
+app.use('/api/notifications', require('./src/routes/notifications'));
+app.use('/api/system-config', require('./src/routes/system-config'));
+app.use('/api/search', require('./src/routes/search'));
 
 // 健康检查
 app.get('/health', (req, res) => {
@@ -68,12 +80,18 @@ app.use((err, req, res, next) => {
 // 启动服务器
 app.listen(PORT, () => {
   console.log(`🚀 补丁服务端运行在 http://localhost:${PORT}`);
-  console.log(`📊 环境: ${process.env.NODE_ENV}`);
-  console.log(`📁 上传目录: ${process.env.UPLOAD_DIR}`);
+  console.log(`📊 环境: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`📁 上传目录: ${process.env.UPLOAD_DIR || './uploads'}`);
+  
+  // 初始化定时任务
+  const { initScheduler } = require('./src/utils/scheduler');
+  initScheduler();
 });
 
 // 优雅关闭
 process.on('SIGTERM', () => {
   console.log('收到 SIGTERM 信号，正在关闭服务器...');
+  const { scheduler } = require('./src/utils/scheduler');
+  scheduler.stopAll();
   process.exit(0);
 });

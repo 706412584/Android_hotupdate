@@ -30,9 +30,37 @@ function initDatabase() {
         username VARCHAR(50) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
         email VARCHAR(100),
+        avatar VARCHAR(255),
         role VARCHAR(20) DEFAULT 'user',
+        status VARCHAR(20) DEFAULT 'active',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // 应用表
+    db.run(`
+      CREATE TABLE IF NOT EXISTS apps (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        app_id VARCHAR(100) UNIQUE NOT NULL,
+        app_name VARCHAR(100) NOT NULL,
+        package_name VARCHAR(255) NOT NULL,
+        description TEXT,
+        icon VARCHAR(255),
+        owner_id INTEGER NOT NULL,
+        status VARCHAR(20) DEFAULT 'active',
+        
+        -- 安全配置
+        require_signature BOOLEAN DEFAULT 0,
+        require_encryption BOOLEAN DEFAULT 0,
+        keystore_path VARCHAR(255),
+        keystore_password VARCHAR(255),
+        key_alias VARCHAR(100),
+        key_password VARCHAR(255),
+        
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (owner_id) REFERENCES users(id)
       )
     `);
 
@@ -40,6 +68,7 @@ function initDatabase() {
     db.run(`
       CREATE TABLE IF NOT EXISTS patches (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        app_id INTEGER NOT NULL,
         version VARCHAR(20) NOT NULL,
         patch_id VARCHAR(50) UNIQUE NOT NULL,
         base_version VARCHAR(20) NOT NULL,
@@ -58,6 +87,7 @@ function initDatabase() {
         created_by INTEGER,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (app_id) REFERENCES apps(id),
         FOREIGN KEY (created_by) REFERENCES users(id)
       )
     `);
@@ -84,17 +114,17 @@ function initDatabase() {
       CREATE TABLE IF NOT EXISTS logs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER,
+        username VARCHAR(50),
         action VARCHAR(50) NOT NULL,
-        resource VARCHAR(50),
+        resource_type VARCHAR(50),
         resource_id INTEGER,
         details TEXT,
         ip_address VARCHAR(45),
+        user_agent TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id)
       )
     `);
-
-    console.log('✅ 数据库表初始化完成');
   });
 }
 

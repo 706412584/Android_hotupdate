@@ -1,0 +1,84 @@
+/* 全局样式变量 */
+:root {
+  /* 主题色 */
+  --primary-color: #d4af7a;
+  --primary-hover: #c29a63;
+  --primary-light: #e8d4b8;
+  
+  /* 文字颜色 */
+  --text-primary: #333;
+  --text-secondary: #666;
+  --text-light: #999;
+  --text-white: #fff;
+  
+  /* 背景色 */
+  --bg-white: #fff;
+  --bg-gray: #f5f7fa;
+  --bg-light: #fafafa;
+  
+  /* 边框色 */
+  --border-color: #e5e7eb;
+  --border-light: #f0f0f0;
+  
+  /* 阴影 */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+  
+  /* 圆角 */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  
+  /* 间距 */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+}
+
+/* 全局按钮样式 */
+.btn-primary {
+  background: var(--primary-color);
+  color: var(--text-white);
+  border: none;
+  padding: 10px 24px;
+  border-radius: 30px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(212, 175, 122, 0.3);
+}
+
+/* 卡片样式 */
+.card {
+  background: var(--bg-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* 输入框样式 */
+.input-elegant {
+  border: none;
+  border-bottom: 1px solid var(--border-color);
+  padding: 8px 0;
+  font-size: 14px;
+  transition: border-color 0.3s;
+}
+
+.input-elegant:focus {
+  border-bottom-color: var(--primary-color);
+  outline: none;
+}
