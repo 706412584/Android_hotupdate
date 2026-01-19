@@ -36,7 +36,7 @@ COPY --from=frontend-builder /app/frontend/dist ./public
 RUN mkdir -p uploads backups
 
 # 暴露端口（使用环境变量，默认 3000）
-EXPOSE ${PORT:-3000}
+EXPOSE ${PORT:-8080}
 
 # 健康检查（使用环境变量端口）
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
