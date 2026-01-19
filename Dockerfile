@@ -20,6 +20,13 @@ FROM node:18-alpine
 
 WORKDIR /app
 
+# 安装 OpenJDK 17 和 bash（用于补丁生成和终端）
+RUN apk add --no-cache openjdk17 bash
+
+# 设置 JAVA_HOME 环境变量
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk
+ENV PATH="$JAVA_HOME/bin:$PATH"
+
 # 复制后端 package.json
 COPY patch-server/backend/package*.json ./
 
