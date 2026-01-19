@@ -49,6 +49,7 @@ backups/*
 Dockerfile
 .dockerignore
 docker-compose.yml
+docker/
 
 # Git
 .git
@@ -58,7 +59,21 @@ docker-compose.yml
 # 文档
 README.md
 docs/
+*.md
 
 # CI/CD
 .github
 .gitlab-ci.yml
+
+# Gradle 相关（避免被检测为 Gradle 项目）
+gradle/
+gradlew
+gradlew.bat
+gradle.properties
+build.gradle
+settings.gradle
+*.gradle
+
+# Android 相关
+.gradle
+local.properties
