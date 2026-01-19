@@ -369,6 +369,10 @@ npm run dev  # http://localhost:5173
 - ✅ 更新检查 - 提供 RESTful API 供客户端检查更新
 - ✅ 下载统计 - 查看补丁下载和应用情况
 
+**服务端界面预览**:
+
+![服务端管理后台](docs/server-dashboard.png)
+
 **使用说明**:
 1. 在 Demo App 中点击"🌐 服务端测试"按钮
 2. 使用默认账号登录测试各项 API 功能

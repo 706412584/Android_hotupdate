@@ -44,6 +44,10 @@ We provide a free patch hosting service for testing and learning:
 - ✅ Update Check - RESTful API for client update checks
 - ✅ Download Statistics - View patch downloads and usage
 
+**Server Dashboard Preview**:
+
+![Server Dashboard](docs/server-dashboard.png)
+
 **How to Use**:
 1. Click "🌐 Server Test" button in Demo App
 2. Login with default credentials to test API features
