@@ -318,12 +318,11 @@ public class ServerTestActivity extends AppCompatActivity {
         String finalCurrentVersion = currentVersion;
         executor.execute(() -> {
             try {
-                String urlStr = serverUrl + "/api/updates/check?package_name=" + packageName + 
-                               "&current_version=" + finalCurrentVersion;
+                // 使用正确的 API 路径
+                String urlStr = serverUrl + "/api/client/check-update?version=" + finalCurrentVersion;
                 URL url = new URL(urlStr);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
-                conn.setRequestProperty("Authorization", "Bearer " + authToken);
                 conn.setConnectTimeout(10000);
                 conn.setReadTimeout(10000);
 
@@ -332,7 +331,7 @@ public class ServerTestActivity extends AppCompatActivity {
 
                 if (responseCode == 200) {
                     JSONObject jsonResponse = new JSONObject(response);
-                    boolean hasUpdate = jsonResponse.getBoolean("has_update");
+                    boolean hasUpdate = jsonResponse.getBoolean("hasUpdate");
                     
                     StringBuilder result = new StringBuilder();
                     if (hasUpdate) {
@@ -340,11 +339,11 @@ public class ServerTestActivity extends AppCompatActivity {
                         JSONObject patch = jsonResponse.getJSONObject("patch");
                         result.append("新版本: ").append(patch.getString("version")).append("\n");
                         result.append("补丁大小: ").append(formatSize(patch.getLong("size"))).append("\n");
-                        result.append("下载地址: ").append(patch.getString("download_url")).append("\n");
+                        result.append("下载地址: ").append(patch.getString("downloadUrl")).append("\n");
                         if (patch.has("description") && !patch.isNull("description")) {
                             result.append("\n更新说明:\n").append(patch.getString("description")).append("\n");
                         }
-                        result.append("\n强制更新: ").append(patch.getBoolean("force_update") ? "是" : "否");
+                        result.append("\n强制更新: ").append(patch.getBoolean("forceUpdate") ? "是" : "否");
                     } else {
                         result.append("✓ 已是最新版本\n\n");
                         result.append("当前版本: ").append(finalCurrentVersion).append("\n");
