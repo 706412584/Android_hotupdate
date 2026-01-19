@@ -78,8 +78,8 @@ app.use((err, req, res, next) => {
 });
 
 // 启动服务器
-app.listen(PORT, () => {
-  console.log(`🚀 补丁服务端运行在 http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 补丁服务端运行在 http://0.0.0.0:${PORT}`);
   console.log(`📊 环境: ${process.env.NODE_ENV || 'development'}`);
   console.log(`📁 上传目录: ${process.env.UPLOAD_DIR || './uploads'}`);
   
