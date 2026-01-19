@@ -66,14 +66,20 @@ public class ServerTestActivity extends AppCompatActivity {
         btnCheckUpdate = findViewById(R.id.btn_check_update);
         tvResult = findViewById(R.id.tv_result);
         progressBar = findViewById(R.id.progress_bar);
+        Button btnOpenRegister = findViewById(R.id.btn_open_register);
 
-        // 设置默认值
+        // 设置默认服务器地址
         etServerUrl.setText(DEFAULT_SERVER_URL);
-        etUsername.setText("admin");
-        etPassword.setText("522623");
+        
+        // 不设置默认用户名和密码，提示用户注册
+        etUsername.setHint("请先在网页端注册账号");
+        etPassword.setHint("输入密码");
 
         // 初始状态禁用 API 按钮
         updateButtonStates(false);
+        
+        // 打开注册页面按钮
+        btnOpenRegister.setOnClickListener(v -> openRegisterPage());
     }
 
     private void setupListeners() {
@@ -107,6 +113,28 @@ public class ServerTestActivity extends AppCompatActivity {
 
     private void showToast(String message) {
         mainHandler.post(() -> Toast.makeText(this, message, Toast.LENGTH_SHORT).show());
+    }
+
+    /**
+     * 打开注册页面
+     */
+    private void openRegisterPage() {
+        String serverUrl = etServerUrl.getText().toString().trim();
+        if (serverUrl.isEmpty()) {
+            showToast("请先填写服务器地址");
+            return;
+        }
+        
+        // 打开浏览器访问注册页面
+        String registerUrl = serverUrl + "/register";
+        try {
+            android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_VIEW);
+            intent.setData(android.net.Uri.parse(registerUrl));
+            startActivity(intent);
+        } catch (Exception e) {
+            Log.e(TAG, "打开注册页面失败", e);
+            showToast("打开浏览器失败");
+        }
     }
 
     /**
