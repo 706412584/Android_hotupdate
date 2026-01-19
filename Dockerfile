@@ -27,6 +27,9 @@ RUN apk add --no-cache openjdk17 bash wget
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk
 ENV PATH="$JAVA_HOME/bin:$PATH"
 
+# 设置 patch-cli 路径
+ENV PATCH_CLI_JAR=/app/tools/patch-cli.jar
+
 # 复制后端 package.json
 COPY patch-server/backend/package*.json ./
 
