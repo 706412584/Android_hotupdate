@@ -1,0 +1,39 @@
+# 忽略大部分内容，但保留必要的文件
+.git
+.github
+.gradle
+.idea
+.vscode
+.kiro
+*.md
+*.log
+*.iml
+.DS_Store
+
+# 忽略其他 build 目录，但保留 patch-cli 的 jar
+build/
+!patch-cli/build/
+!patch-cli/build/libs/
+!patch-cli/build/libs/*.jar
+
+# 忽略不需要的模块
+tinker-dev/
+apksig-android-master/
+Bouncy Castle/
+login-demos-main/
+test_assets/
+docs/
+
+# Node.js
+node_modules/
+*.db
+uploads/
+
+# Android 相关
+*.apk
+*.ap_
+*.aab
+*.dex
+*.class
+*.jks
+*.keystore
