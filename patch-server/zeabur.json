@@ -1,4 +1,10 @@
 {
   "name": "patch-server",
-  "dockerfile": "Dockerfile"
+  "dockerfile": "Dockerfile",
+  "watchPaths": [
+    "Dockerfile",
+    ".dockerignore",
+    "patch-server/**",
+    "patch-cli/build/libs/**"
+  ]
 }
