@@ -376,6 +376,7 @@ npm run dev  # http://localhost:5173
 1. 在 Demo App 中点击"🌐 服务端测试"按钮
 2. 使用默认账号登录测试各项 API 功能
 3. 参考 [服务端 API 文档](patch-server/README.md) 集成到您的应用
+4. 查看 [客户端集成示例](app/src/main/java/com/orange/update/ServerTestActivity.java) 了解如何调用 API
 
 > ⚠️ **注意**: 此服务仅供测试和学习使用，有存储和流量限制，不建议在生产环境使用。生产环境请参考 [部署指南](patch-server/README.md#部署) 自行部署。
 ### 客户端集成

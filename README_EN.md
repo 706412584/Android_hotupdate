@@ -51,6 +51,7 @@ We provide a free patch hosting service for testing and learning:
 1. Click "🌐 Server Test" button in Demo App
 2. Login with default credentials to test API features
 3. Refer to [Server API Documentation](patch-server/README.md) for integration
+4. Check [Client Integration Example](app/src/main/java/com/orange/update/ServerTestActivity.java) to learn how to call APIs
 
 > ⚠️ **Note**: This service is for testing and learning only, with storage and bandwidth limits. Not recommended for production use. For production, please refer to [Deployment Guide](patch-server/README.md#deployment) to deploy your own server.
 
