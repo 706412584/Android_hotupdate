@@ -354,7 +354,27 @@ npm run dev  # http://localhost:5173
 ```
 
 **默认管理员账号**: admin / admin123
+### 🌐 在线服务
 
+我们提供了免费的补丁托管服务供测试和学习使用：
+
+- **服务地址**: https://android-hotupdateserver.zeabur.app
+- **管理后台**: https://android-hotupdateserver.zeabur.app/dashboard
+- **默认账号**: admin / 522623（首次登录请修改密码）
+
+**功能特性**:
+- ✅ 应用管理 - 创建和管理多个应用
+- ✅ 补丁上传 - 支持手动上传或自动生成补丁
+- ✅ 版本控制 - 管理不同版本的补丁
+- ✅ 更新检查 - 提供 RESTful API 供客户端检查更新
+- ✅ 下载统计 - 查看补丁下载和应用情况
+
+**使用说明**:
+1. 在 Demo App 中点击"🌐 服务端测试"按钮
+2. 使用默认账号登录测试各项 API 功能
+3. 参考 [服务端 API 文档](patch-server/README.md) 集成到您的应用
+
+> ⚠️ **注意**: 此服务仅供测试和学习使用，有存储和流量限制，不建议在生产环境使用。生产环境请参考 [部署指南](patch-server/README.md#部署) 自行部署。
 ### 客户端集成
 
 ```java

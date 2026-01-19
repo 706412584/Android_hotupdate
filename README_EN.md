@@ -29,6 +29,28 @@ A complete Android hot update solution that supports **DEX, Resources, SO librar
 - **[Patch Format](docs/PATCH_FORMAT.md)** - Patch package structure
 - **[Release Guide](JITPACK_RELEASE.md)** - How to release new versions
 
+## 🌐 Online Service
+
+We provide a free patch hosting service for testing and learning:
+
+- **Service URL**: https://android-hotupdateserver.zeabur.app
+- **Admin Dashboard**: https://android-hotupdateserver.zeabur.app/dashboard
+- **Default Account**: admin / 522623 (Please change password after first login)
+
+**Features**:
+- ✅ App Management - Create and manage multiple applications
+- ✅ Patch Upload - Manual upload or automatic generation
+- ✅ Version Control - Manage patches for different versions
+- ✅ Update Check - RESTful API for client update checks
+- ✅ Download Statistics - View patch downloads and usage
+
+**How to Use**:
+1. Click "🌐 Server Test" button in Demo App
+2. Login with default credentials to test API features
+3. Refer to [Server API Documentation](patch-server/README.md) for integration
+
+> ⚠️ **Note**: This service is for testing and learning only, with storage and bandwidth limits. Not recommended for production use. For production, please refer to [Deployment Guide](patch-server/README.md#deployment) to deploy your own server.
+
 ## 🚀 Quick Start
 
 ### 1. Add Dependencies
