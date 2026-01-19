@@ -69,6 +69,12 @@ function initDatabase() {
         key_alias VARCHAR(100),
         key_password VARCHAR(255),
         
+        -- 强制更新配置
+        force_update_enabled BOOLEAN DEFAULT 0,
+        latest_version VARCHAR(20),
+        force_update_url VARCHAR(500),
+        force_update_message TEXT,
+        
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (owner_id) REFERENCES users(id),
@@ -101,6 +107,33 @@ function initDatabase() {
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (app_id) REFERENCES apps(id),
         FOREIGN KEY (created_by) REFERENCES users(id)
+      )
+    `);
+
+    // 版本管理表（大版本APK）
+    db.run(`
+      CREATE TABLE IF NOT EXISTS app_versions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        app_id INTEGER NOT NULL,
+        version_name VARCHAR(20) NOT NULL,
+        version_code INTEGER NOT NULL,
+        file_path VARCHAR(255) NOT NULL,
+        file_name VARCHAR(255) NOT NULL,
+        file_size INTEGER NOT NULL,
+        md5 VARCHAR(32) NOT NULL,
+        download_url VARCHAR(500),
+        description TEXT,
+        changelog TEXT,
+        is_force_update BOOLEAN DEFAULT 0,
+        min_supported_version VARCHAR(20),
+        status VARCHAR(20) DEFAULT 'active',
+        download_count INTEGER DEFAULT 0,
+        created_by INTEGER,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (app_id) REFERENCES apps(id),
+        FOREIGN KEY (created_by) REFERENCES users(id),
+        UNIQUE(app_id, version_name)
       )
     `);
 

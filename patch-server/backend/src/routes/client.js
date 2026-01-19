@@ -16,10 +16,33 @@ router.get('/check-update', async (req, res) => {
     let appConfig = null;
     if (appId) {
       appConfig = await db.get(`
-        SELECT require_signature, require_encryption
+        SELECT 
+          require_signature, 
+          require_encryption,
+          force_update_enabled,
+          latest_version,
+          force_update_url,
+          force_update_message
         FROM apps
         WHERE app_id = ? AND status = 'active'
       `, [appId]);
+      
+      // 检查是否需要强制大版本更新
+      if (appConfig && appConfig.force_update_enabled === 1 && appConfig.latest_version) {
+        if (compareVersion(version, appConfig.latest_version) < 0) {
+          return res.json({
+            hasUpdate: false,
+            forceUpdate: true,
+            latestVersion: appConfig.latest_version,
+            downloadUrl: appConfig.force_update_url || '',
+            message: appConfig.force_update_message || '发现新版本，请更新到最新版本',
+            securityConfig: {
+              requireSignature: appConfig.require_signature === 1,
+              requireEncryption: appConfig.require_encryption === 1
+            }
+          });
+        }
+      }
     }
 
     // 确定当前版本（优先使用补丁版本，否则使用应用版本）
@@ -98,6 +121,22 @@ router.get('/check-update', async (req, res) => {
     res.status(500).json({ error: '检查更新失败' });
   }
 });
+
+// 版本比较函数
+function compareVersion(v1, v2) {
+  const parts1 = v1.split('.').map(Number);
+  const parts2 = v2.split('.').map(Number);
+  
+  for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+    const part1 = parts1[i] || 0;
+    const part2 = parts2[i] || 0;
+    
+    if (part1 < part2) return -1;
+    if (part1 > part2) return 1;
+  }
+  
+  return 0;
+}
 
 // 下载补丁
 router.get('/download/:id', async (req, res) => {
