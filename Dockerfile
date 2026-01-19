@@ -20,8 +20,8 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# 安装 OpenJDK 17 和 bash（用于补丁生成和终端）
-RUN apk add --no-cache openjdk17 bash
+# 安装 OpenJDK 17、bash 和 wget（用于补丁生成和下载工具）
+RUN apk add --no-cache openjdk17 bash wget
 
 # 设置 JAVA_HOME 环境变量
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk
@@ -36,14 +36,17 @@ RUN npm install --production
 # 复制后端源代码
 COPY patch-server/backend/ ./
 
-# 复制 patch-cli 工具
-COPY patch-cli/build/libs/patch-cli-1.3.3-all.jar ./tools/patch-cli.jar
+# 创建必要的目录
+RUN mkdir -p tools
+
+# 下载 patch-cli 工具
+RUN wget -O ./tools/patch-cli.jar https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.3.3/patch-cli-1.3.3-all.jar
 
 # 从前端构建阶段复制构建产物
 COPY --from=frontend-builder /app/frontend/dist ./public
 
-# 创建必要的目录
-RUN mkdir -p uploads backups tools
+# 创建其他必要的目录
+RUN mkdir -p uploads backups
 
 # 暴露端口（Zeabur 会通过环境变量 PORT 指定实际端口）
 EXPOSE 3000
