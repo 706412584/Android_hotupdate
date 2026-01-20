@@ -366,6 +366,7 @@ npm run dev  # http://localhost:5173
 - **服务地址**: https://android-hotupdateserver.zeabur.app
 - **管理后台**: https://android-hotupdateserver.zeabur.app/dashboard
 
+
 **功能特性**:
 - ✅ 应用管理 - 创建和管理多个应用
 - ✅ 补丁上传 - 支持手动上传或自动生成补丁
