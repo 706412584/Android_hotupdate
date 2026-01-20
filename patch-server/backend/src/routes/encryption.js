@@ -5,7 +5,7 @@ const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const { generateKey, validateKey, encryptText, decryptText } = require('../utils/encryption');
 
 // 生成新的加密密钥
-router.post('/generate-key', authenticateToken, requireAdmin, async (req, res) => {
+router.get('/generate-key', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const key = generateKey();
     res.json({ key });

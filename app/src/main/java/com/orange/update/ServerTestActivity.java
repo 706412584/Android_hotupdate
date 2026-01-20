@@ -238,10 +238,10 @@ public class ServerTestActivity extends AppCompatActivity {
                     
                     for (int i = 0; i < apps.length(); i++) {
                         JSONObject app = apps.getJSONObject(i);
-                        result.append("📱 ").append(app.getString("name")).append("\n");
-                        result.append("   包名: ").append(app.getString("package_name")).append("\n");
-                        result.append("   版本: ").append(app.getString("current_version")).append("\n");
-                        result.append("   ID: ").append(app.getInt("id")).append("\n\n");
+                        result.append("📱 ").append(app.optString("app_name", "未知应用")).append("\n");
+                        result.append("   包名: ").append(app.optString("package_name", "未知")).append("\n");
+                        result.append("   应用ID: ").append(app.optString("app_id", "未知")).append("\n");
+                        result.append("   ID: ").append(app.optInt("id", 0)).append("\n\n");
                     }
                     
                     showResult(result.toString());

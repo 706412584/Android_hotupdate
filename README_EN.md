@@ -194,7 +194,7 @@ public class MyApplication extends Application {
         super.attachBaseContext(base);
         
         // Load applied patches (must be called in attachBaseContext)
-        HotUpdateHelper helper = new HotUpdateHelper(this);
+        HotUpdateHelper helper = new HotUpdateHelper(base);
         helper.loadAppliedPatch();
     }
 }

@@ -171,7 +171,7 @@ public class MyApplication extends Application {
         super.attachBaseContext(base);
         
         // 加载已应用的补丁（必须在 attachBaseContext 中调用）
-        HotUpdateHelper helper = new HotUpdateHelper(this);
+        HotUpdateHelper helper = new HotUpdateHelper(base);
         helper.loadAppliedPatch();
     }
 }
