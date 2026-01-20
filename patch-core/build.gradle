@@ -41,6 +41,9 @@ dependencies {
     implementation 'org.bouncycastle:bcprov-jdk18on:1.77'
     implementation 'org.bouncycastle:bcpkix-jdk18on:1.77'
     
+    // ZipSigner for JKS signing (kellinwood)
+    implementation files('libs/zipsigner.jar')
+    
     // Testing
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'net.jqwik:jqwik:1.8.2'

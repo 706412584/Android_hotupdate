@@ -59,6 +59,12 @@ public class JarSigner {
             throw new SigningException("JAR file does not exist");
         }
         
+        // 优先尝试使用 ZipSigner（支持 JKS 原生签名）
+        if (tryZipSigner(jarFile)) {
+            return;  // ZipSigner 签名成功，直接返回
+        }
+        
+        // ZipSigner 失败或不可用，使用标准 JAR 签名流程
         try {
             System.out.println("[JarSigner] 开始签名: " + jarFile.getAbsolutePath());
             
@@ -124,6 +130,118 @@ public class JarSigner {
             System.err.println("[JarSigner] 签名失败: " + e.getMessage());
             e.printStackTrace();
             throw new SigningException("Failed to sign JAR: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * 尝试使用 ZipSigner 签名（支持 JKS）
+     * 
+     * @param jarFile 要签名的文件
+     * @return 是否成功
+     */
+    private boolean tryZipSigner(File jarFile) {
+        try {
+            // 检查是否是 JKS 文件
+            if (config.getKeystoreFile() == null) {
+                return false;
+            }
+            
+            String keystoreName = config.getKeystoreFile().getName().toLowerCase();
+            if (!keystoreName.endsWith(".jks")) {
+                System.out.println("[JarSigner] 不是 JKS 文件，跳过 ZipSigner");
+                return false;
+            }
+            
+            System.out.println("[JarSigner] 检测到 JKS 文件，尝试使用 ZipSigner 签名");
+            
+            // 方案：使用 XiaoMozi.签名 类的方式
+            // 1. 使用 KeyStoreFileManager.loadKeyStore() 加载 keystore
+            // 2. 使用 ZipSigner.setKeys() 设置密钥
+            // 3. 调用 ZipSigner.signZip() 签名
+            try {
+                // 加载 KeyStoreFileManager 类
+                Class<?> keyStoreManagerClass = Class.forName("kellinwood.security.zipsigner.optional.KeyStoreFileManager");
+                
+                // 调用 loadKeyStore(String keystorePath, char[] password)
+                java.lang.reflect.Method loadKeyStoreMethod = keyStoreManagerClass.getMethod("loadKeyStore",
+                    String.class, char[].class);
+                
+                java.security.KeyStore keyStore = (java.security.KeyStore) loadKeyStoreMethod.invoke(null,
+                    config.getKeystoreFile().getAbsolutePath(),
+                    config.getKeystorePassword().toCharArray());
+                
+                System.out.println("[JarSigner] ✓ KeyStore 加载成功（通过 KeyStoreFileManager）");
+                
+                // 获取私钥和证书
+                java.security.PrivateKey privateKey = (java.security.PrivateKey) keyStore.getKey(
+                    config.getKeyAlias(),
+                    config.getKeyPassword().toCharArray());
+                
+                java.security.cert.Certificate certificate = keyStore.getCertificate(config.getKeyAlias());
+                
+                System.out.println("[JarSigner] ✓ 私钥和证书获取成功");
+                
+                // 创建 ZipSigner 实例
+                Class<?> zipSignerClass = Class.forName("kellinwood.security.zipsigner.ZipSigner");
+                Object zipSigner = zipSignerClass.newInstance();
+                
+                // 调用 setKeys(String keyName, X509Certificate cert, PrivateKey privateKey, String signatureAlgorithm, byte[] publicKeyBytes)
+                java.lang.reflect.Method setKeysMethod = zipSignerClass.getMethod("setKeys",
+                    String.class,
+                    java.security.cert.X509Certificate.class,
+                    java.security.PrivateKey.class,
+                    String.class,
+                    byte[].class);
+                
+                setKeysMethod.invoke(zipSigner,
+                    "XiaoMozi",  // keyName
+                    certificate,  // certificate
+                    privateKey,  // privateKey
+                    "SHA1withRSA",  // signatureAlgorithm
+                    null);  // publicKeyBytes
+                
+                System.out.println("[JarSigner] ✓ ZipSigner.setKeys() 调用成功");
+                
+                // 创建临时输出文件
+                File tempOutput = new File(jarFile.getParent(), jarFile.getName() + ".signed.tmp");
+                
+                // 调用 signZip(String input, String output)
+                java.lang.reflect.Method signZipMethod = zipSignerClass.getMethod("signZip",
+                    String.class, String.class);
+                
+                signZipMethod.invoke(zipSigner,
+                    jarFile.getAbsolutePath(),
+                    tempOutput.getAbsolutePath());
+                
+                System.out.println("[JarSigner] ✓ ZipSigner.signZip() 调用成功");
+                
+                if (tempOutput.exists()) {
+                    // 替换原文件
+                    jarFile.delete();
+                    tempOutput.renameTo(jarFile);
+                    System.out.println("[JarSigner] ✓ ZipSigner 签名成功");
+                    return true;
+                } else {
+                    System.out.println("[JarSigner] ZipSigner 签名失败：输出文件不存在");
+                    return false;
+                }
+                
+            } catch (ClassNotFoundException e) {
+                System.out.println("[JarSigner] ZipSigner 类未找到，跳过");
+                return false;
+            } catch (java.lang.reflect.InvocationTargetException e) {
+                System.err.println("[JarSigner] ZipSigner 签名异常（InvocationTargetException）");
+                System.err.println("[JarSigner] 目标异常: " + e.getTargetException());
+                if (e.getTargetException() != null) {
+                    e.getTargetException().printStackTrace();
+                }
+                return false;
+            }
+            
+        } catch (Exception e) {
+            System.err.println("[JarSigner] ZipSigner 签名异常: " + e.getMessage());
+            e.printStackTrace();
+            return false;
         }
     }
     

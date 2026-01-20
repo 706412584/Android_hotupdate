@@ -116,11 +116,15 @@ public class MainActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
         
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
-        });
+        // 设置窗口insets（如果view存在）
+        View mainView = findViewById(R.id.main);
+        if (mainView != null) {
+            ViewCompat.setOnApplyWindowInsetsListener(mainView, (v, insets) -> {
+                Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+                v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+                return insets;
+            });
+        }
 
         // 设置默认输出目录为下载目录
         outputDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
@@ -804,10 +808,33 @@ public class MainActivity extends AppCompatActivity {
         // 不在 AndroidPatchGenerator 中签名，而是在补丁生成完成后使用 PatchSigner（apksig）签名
         // 这样可以使用更快更可靠的 apksig 库
         
+        // 配置签名（如果需要）
+        com.orange.patchgen.config.SigningConfig.Builder signingBuilder = null;
+        if (withApkSignature) {
+            // 使用应用的JKS keystore进行签名
+            File keystoreFile = new File(getFilesDir().getParent(), "../app/smlieapp.jks");
+            if (!keystoreFile.exists()) {
+                // 尝试其他位置
+                keystoreFile = new File(getExternalFilesDir(null), "smlieapp.jks");
+            }
+            
+            if (keystoreFile.exists()) {
+                signingBuilder = new com.orange.patchgen.config.SigningConfig.Builder()
+                        .keystoreFile(keystoreFile)
+                        .keystorePassword("123123")  // 正确的密码
+                        .keyAlias("smlieapp")  // 正确的别名
+                        .keyPassword("123123");  // 正确的密码
+                Log.d(TAG, "✓ 配置签名: " + keystoreFile.getAbsolutePath());
+            } else {
+                Log.w(TAG, "⚠️ Keystore文件不存在，跳过签名");
+            }
+        }
+        
         generator = new AndroidPatchGenerator.Builder(this)
                 .baseApk(selectedBaseApk)
                 .newApk(selectedNewApk)
                 .output(outputFile)
+                .signingConfig(signingBuilder != null ? signingBuilder.build() : null)
                 // 不传入 signingConfig，补丁生成后再签名
                 .callbackOnMainThread(true)
                 .callback(new SimpleAndroidGeneratorCallback() {
@@ -928,27 +955,16 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(TAG, "补丁文件大小: " + patchFile.length() + " bytes");
                 
                 // 1. APK 签名（使用 apksig 对补丁进行真正的签名）
+                // 注意：签名功能已移至 patch-generator-android 模块
+                // update 模块只负责验证签名，不负责生成签名
                 if (withApkSignature) {
-                    runOnUiThread(() -> tvStatus.setText("正在签名补丁..."));
+                    runOnUiThread(() -> tvStatus.setText("跳过签名（签名功能在 patch-generator-android 模块）..."));
+                    Log.w(TAG, "⚠️ 签名功能已移至 patch-generator-android 模块");
+                    Log.w(TAG, "   update 模块只负责验证签名，不负责生成签名");
+                    Log.w(TAG, "   如需签名功能，请使用 patch-generator-android 模块");
                     
-                    // 使用 PatchSigner 对补丁进行签名
-                    PatchSigner patchSigner = new PatchSigner(MainActivity.this);
-                    File signedPatch = patchSigner.signPatch(
-                        currentFile,
-                        selectedKeystoreFile,
-                        keystorePassword,
-                        keyAlias,
-                        keyPassword
-                    );
-                    
-                    if (signedPatch != null && signedPatch.exists()) {
-                        currentFile = signedPatch;  // 更新当前文件为签名后的文件
-                        Log.d(TAG, "✓ 补丁签名成功");
-                        Log.d(TAG, "  签名后文件: " + signedPatch.getAbsolutePath());
-                        Log.d(TAG, "  签名后大小: " + formatSize(signedPatch.length()));
-                    } else {
-                        throw new Exception("补丁签名失败: " + patchSigner.getError());
-                    }
+                    // 跳过签名步骤
+                    // File signedPatch = patchSigner.signPatch(...);
                 }
                 
                 // 2. ZIP 密码保护（在签名之后，AES 加密之前）
@@ -3052,13 +3068,59 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         
-        // 加载签名信息
-        keystorePassword = prefs.getString(KEY_KEYSTORE_PASSWORD, null);
-        keyAlias = prefs.getString(KEY_KEY_ALIAS, null);
-        keyPassword = prefs.getString(KEY_KEY_PASSWORD, null);
+        // 如果没有保存的配置，使用默认的 JKS 文件（来自 app/build.gradle）
+        if (selectedKeystoreFile == null) {
+            File defaultJks = new File(getExternalFilesDir(null), "smlieapp.jks");
+            if (!defaultJks.exists()) {
+                // 尝试从 assets 复制默认的 JKS 文件
+                try {
+                    java.io.InputStream is = getAssets().open("smlieapp.jks");
+                    java.io.FileOutputStream fos = new java.io.FileOutputStream(defaultJks);
+                    byte[] buffer = new byte[8192];
+                    int bytesRead;
+                    while ((bytesRead = is.read(buffer)) != -1) {
+                        fos.write(buffer, 0, bytesRead);
+                    }
+                    fos.close();
+                    is.close();
+                    Log.i(TAG, "✓ 已从 assets 复制默认 JKS 文件");
+                } catch (Exception e) {
+                    // 如果 assets 中没有，尝试从 app 目录复制
+                    File appJks = new File("app/smlieapp.jks");
+                    if (appJks.exists()) {
+                        try {
+                            java.io.FileInputStream fis = new java.io.FileInputStream(appJks);
+                            java.io.FileOutputStream fos = new java.io.FileOutputStream(defaultJks);
+                            byte[] buffer = new byte[8192];
+                            int bytesRead;
+                            while ((bytesRead = fis.read(buffer)) != -1) {
+                                fos.write(buffer, 0, bytesRead);
+                            }
+                            fos.close();
+                            fis.close();
+                            Log.i(TAG, "✓ 已从 app 目录复制默认 JKS 文件");
+                        } catch (Exception ex) {
+                            Log.w(TAG, "无法复制默认 JKS 文件: " + ex.getMessage());
+                        }
+                    }
+                }
+            }
+            
+            if (defaultJks.exists()) {
+                selectedKeystoreFile = defaultJks;
+                Log.i(TAG, "✓ 使用默认 JKS 文件: " + defaultJks.getAbsolutePath());
+            }
+        }
+        
+        // 加载签名信息（使用默认值，来自 app/build.gradle）
+        keystorePassword = prefs.getString(KEY_KEYSTORE_PASSWORD, "123123");
+        keyAlias = prefs.getString(KEY_KEY_ALIAS, "smlieapp");
+        keyPassword = prefs.getString(KEY_KEY_PASSWORD, "123123");
         
         if (selectedKeystoreFile != null && keystorePassword != null && keyAlias != null && keyPassword != null) {
             Log.i(TAG, "✓ JKS 配置已完整加载");
+            Log.i(TAG, "  文件: " + selectedKeystoreFile.getAbsolutePath());
+            Log.i(TAG, "  别名: " + keyAlias);
         }
     }
     
@@ -3180,7 +3242,8 @@ public class MainActivity extends AppCompatActivity {
         
         android.widget.EditText etStorePassword = new android.widget.EditText(this);
         etStorePassword.setHint("输入密钥库密码");
-        etStorePassword.setText(keystorePassword != null ? keystorePassword : "");
+        // 使用正确的默认密码（来自 app/build.gradle）
+        etStorePassword.setText(keystorePassword != null ? keystorePassword : "123123");
         etStorePassword.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
         jksConfigLayout.addView(etStorePassword);
         
@@ -3193,7 +3256,8 @@ public class MainActivity extends AppCompatActivity {
         
         android.widget.EditText etKeyAlias = new android.widget.EditText(this);
         etKeyAlias.setHint("输入密钥别名");
-        etKeyAlias.setText(keyAlias != null ? keyAlias : "");
+        // 使用正确的默认别名（来自 app/build.gradle）
+        etKeyAlias.setText(keyAlias != null ? keyAlias : "smlieapp");
         jksConfigLayout.addView(etKeyAlias);
         
         // 密钥密码输入
@@ -3205,7 +3269,8 @@ public class MainActivity extends AppCompatActivity {
         
         android.widget.EditText etKeyPassword = new android.widget.EditText(this);
         etKeyPassword.setHint("输入密钥密码");
-        etKeyPassword.setText(keyPassword != null ? keyPassword : "");
+        // 使用正确的默认密码（来自 app/build.gradle）
+        etKeyPassword.setText(keyPassword != null ? keyPassword : "123123");
         etKeyPassword.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
         jksConfigLayout.addView(etKeyPassword);
         

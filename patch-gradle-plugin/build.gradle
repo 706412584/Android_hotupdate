@@ -43,13 +43,6 @@ gradlePlugin {
 
 // Publishing configuration
 publishing {
-    publications {
-        pluginMaven(MavenPublication) {
-            groupId = 'com.orange.patch'
-            artifactId = 'patch-gradle-plugin'
-            version = '1.2.8'
-        }
-    }
     repositories {
         maven {
             name = 'local'

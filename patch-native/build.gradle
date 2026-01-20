@@ -82,7 +82,9 @@ android {
 }
 
 dependencies {
-    implementation 'androidx.annotation:annotation:1.7.1'
+    // AndroidX annotations (compile-time only, not needed at runtime)
+    compileOnly 'androidx.annotation:annotation:1.7.1'
+    
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
@@ -116,9 +118,28 @@ afterEvaluate {
                 
                 // 配置 POM
                 pom {
+                    // 设置正确的 packaging
+                    packaging = 'aar'
+                    
                     configurePom(it)
                     name = 'Android Hot Update - Native Patch Engine'
                     description = 'Native C++ engine for high-performance patch generation and application using BsDiff algorithm'
+                    
+                    // 手动添加依赖信息
+                    withXml {
+                        def dependenciesNode = asNode().appendNode('dependencies')
+                        
+                        // 添加运行时依赖
+                        configurations.implementation.allDependencies.each {
+                            if (it.group != null && it.name != null && it.version != null) {
+                                def dependencyNode = dependenciesNode.appendNode('dependency')
+                                dependencyNode.appendNode('groupId', it.group)
+                                dependencyNode.appendNode('artifactId', it.name)
+                                dependencyNode.appendNode('version', it.version)
+                                dependencyNode.appendNode('scope', 'runtime')
+                            }
+                        }
+                    }
                 }
             }
         }

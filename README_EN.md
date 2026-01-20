@@ -69,16 +69,11 @@ We provide a free patch hosting service for testing and learning:
 ```groovy
 dependencies {
     // Hot update core library (includes full functionality)
-    implementation 'io.github.706412584:update:1.3.4'
+    implementation 'io.github.706412584:update:1.3.6'
     
     // If you need to generate patches on device, add:
-    implementation 'io.github.706412584:patch-generator-android:1.3.4'
-    
-    // If you need Native high-performance engine (optional, auto-fallback)
-    implementation 'io.github.706412584:patch-native:1.3.4'
-    
-    // If you need core patch engine (usually not required separately)
-    implementation 'io.github.706412584:patch-core:1.3.4'
+    implementation 'io.github.706412584:patch-generator-android:1.3.6'
+  
 }
 ```
 
@@ -86,11 +81,11 @@ dependencies {
 
 | Component | Maven Coordinates | Description |
 |-----------|------------------|-------------|
-| **update** | `io.github.706412584:update:1.3.4` | Hot update core library, required |
-| **patch-generator-android** | `io.github.706412584:patch-generator-android:1.3.4` | On-device patch generation |
-| **patch-native** | `io.github.706412584:patch-native:1.3.4` | Native high-performance engine (AAR) |
-| **patch-core** | `io.github.706412584:patch-core:1.3.4` | Core patch engine |
-| **patch-cli** | [Download JAR](https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.3.4/patch-cli-1.3.4-all.jar) | Command-line tool (standalone) |
+| **update** | `io.github.706412584:update:1.3.6` | Hot update core library, required |
+| **patch-generator-android** | `io.github.706412584:patch-generator-android:1.3.6` | On-device patch generation |
+| **patch-native** | `io.github.706412584:patch-native:1.3.6` | Native high-performance engine (AAR) |
+| **patch-core** | `io.github.706412584:patch-core:1.3.6` | Core patch engine |
+| **patch-cli** | [Download JAR](https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.3.6/patch-cli-1.3.6-all.jar) | Command-line tool (standalone) |
 
 > 💡 **Tips**:
 > - The `update` library includes basic functionality, most cases only need this dependency
@@ -103,10 +98,10 @@ dependencies {
 
 ```bash
 # Download patch-cli
-wget https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.3.4/patch-cli-1.3.4-all.jar
+wget https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.3.6/patch-cli-1.3.6-all.jar
 
 # Generate signed patch
-java -jar patch-cli-1.3.4-all.jar \
+java -jar patch-cli-1.3.6-all.jar \
   --base app-v1.0.apk \
   --new app-v1.1.apk \
   --output patch.zip \
@@ -341,7 +336,7 @@ if (intent != null) {
 | **update** | Hot update SDK, patch application and loading | - |
 | **patch-core** | Core engine, APK parsing, diff comparison | [README](patch-core/README.md) |
 | **patch-native** | Native SO library, BsDiff algorithm | [README](patch-native/README.md) |
-| **patch-cli** | Command line tool, standalone execution, [Direct download](https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.3.4/patch-cli-1.3.4-all.jar) | [README](patch-cli/README.md) |
+| **patch-cli** | Command line tool, standalone execution, [Direct download](https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.3.6/patch-cli-1.3.6-all.jar) | [README](patch-cli/README.md) |
 | **patch-gradle-plugin** | Gradle plugin, build integration | [README](patch-gradle-plugin/README.md) |
 
 ## 💡 Hot Update Principles

@@ -15,7 +15,7 @@ ext {
     
     // POM 信息
     pomGroupId = 'io.github.706412584'
-    pomVersion = '1.3.4'
+    pomVersion = '1.3.6'
     pomUrl = 'https://github.com/706412584/Android_hotupdate'
     pomScmUrl = 'https://github.com/706412584/Android_hotupdate.git'
     pomScmConnection = 'scm:git:git://github.com/706412584/Android_hotupdate.git'
