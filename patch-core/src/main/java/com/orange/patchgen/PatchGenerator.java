@@ -639,6 +639,7 @@ public class PatchGenerator {
         patchInfo.setPatchId("patch_" + System.currentTimeMillis() + "_" + 
                 UUID.randomUUID().toString().substring(0, 8));
         patchInfo.setPatchVersion(newApkInfo.getVersionName());
+        patchInfo.setPackageName(newApkInfo.getPackageName());
         patchInfo.setBaseVersion(baseApkInfo.getVersionName());
         patchInfo.setBaseVersionCode(baseApkInfo.getVersionCode());
         patchInfo.setTargetVersion(newApkInfo.getVersionName());

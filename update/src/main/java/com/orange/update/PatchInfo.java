@@ -13,6 +13,7 @@ public class PatchInfo {
     private static final String KEY_PATCH_ID = "patchId";
     private static final String KEY_PATCH_VERSION = "patchVersion";
     private static final String KEY_TARGET_APP_VERSION = "targetAppVersion";
+    private static final String KEY_PACKAGE_NAME = "packageName";
     private static final String KEY_DOWNLOAD_URL = "downloadUrl";
     private static final String KEY_FILE_SIZE = "fileSize";
     private static final String KEY_MD5 = "md5";
@@ -22,6 +23,7 @@ public class PatchInfo {
     private String patchId;
     private String patchVersion;
     private String targetAppVersion;
+    private String packageName;
     private String downloadUrl;
     private long fileSize;
     private String md5;
@@ -55,6 +57,14 @@ public class PatchInfo {
     
     public void setTargetAppVersion(String targetAppVersion) {
         this.targetAppVersion = targetAppVersion;
+    }
+    
+    public String getPackageName() {
+        return packageName;
+    }
+    
+    public void setPackageName(String packageName) {
+        this.packageName = packageName;
     }
     
     public String getDownloadUrl() {
@@ -107,6 +117,7 @@ public class PatchInfo {
             json.put(KEY_PATCH_ID, patchId);
             json.put(KEY_PATCH_VERSION, patchVersion);
             json.put(KEY_TARGET_APP_VERSION, targetAppVersion);
+            json.put(KEY_PACKAGE_NAME, packageName);
             json.put(KEY_DOWNLOAD_URL, downloadUrl);
             json.put(KEY_FILE_SIZE, fileSize);
             json.put(KEY_MD5, md5);
@@ -141,6 +152,7 @@ public class PatchInfo {
             
             // 解析可选字段
             patchInfo.setTargetAppVersion(jsonObject.optString(KEY_TARGET_APP_VERSION, null));
+            patchInfo.setPackageName(jsonObject.optString(KEY_PACKAGE_NAME, null));
             patchInfo.setFileSize(jsonObject.optLong(KEY_FILE_SIZE, 0));
             patchInfo.setCreateTime(jsonObject.optLong(KEY_CREATE_TIME, 0));
             patchInfo.setDescription(jsonObject.optString(KEY_DESCRIPTION, null));
@@ -208,6 +220,8 @@ public class PatchInfo {
             return false;
         if (targetAppVersion != null ? !targetAppVersion.equals(patchInfo.targetAppVersion) : patchInfo.targetAppVersion != null)
             return false;
+        if (packageName != null ? !packageName.equals(patchInfo.packageName) : patchInfo.packageName != null)
+            return false;
         if (downloadUrl != null ? !downloadUrl.equals(patchInfo.downloadUrl) : patchInfo.downloadUrl != null)
             return false;
         if (md5 != null ? !md5.equals(patchInfo.md5) : patchInfo.md5 != null)
@@ -220,6 +234,7 @@ public class PatchInfo {
         int result = patchId != null ? patchId.hashCode() : 0;
         result = 31 * result + (patchVersion != null ? patchVersion.hashCode() : 0);
         result = 31 * result + (targetAppVersion != null ? targetAppVersion.hashCode() : 0);
+        result = 31 * result + (packageName != null ? packageName.hashCode() : 0);
         result = 31 * result + (downloadUrl != null ? downloadUrl.hashCode() : 0);
         result = 31 * result + (int) (fileSize ^ (fileSize >>> 32));
         result = 31 * result + (md5 != null ? md5.hashCode() : 0);
@@ -234,6 +249,7 @@ public class PatchInfo {
                 "patchId='" + patchId + '\'' +
                 ", patchVersion='" + patchVersion + '\'' +
                 ", targetAppVersion='" + targetAppVersion + '\'' +
+                ", packageName='" + packageName + '\'' +
                 ", downloadUrl='" + downloadUrl + '\'' +
                 ", fileSize=" + fileSize +
                 ", md5='" + md5 + '\'' +

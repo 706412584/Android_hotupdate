@@ -11,6 +11,7 @@ import com.google.gson.GsonBuilder;
 public class PatchInfo {
     private String patchId;
     private String patchVersion;
+    private String packageName;
     private String baseVersion;
     private int baseVersionCode;
     private String targetVersion;
@@ -56,6 +57,14 @@ public class PatchInfo {
 
     public void setPatchVersion(String patchVersion) {
         this.patchVersion = patchVersion;
+    }
+
+    public String getPackageName() {
+        return packageName;
+    }
+
+    public void setPackageName(String packageName) {
+        this.packageName = packageName;
     }
 
     public String getBaseVersion() {

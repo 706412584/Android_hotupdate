@@ -280,7 +280,16 @@ public class HotUpdateHelper {
                     callback.onProgress(5, "准备应用补丁...");
                 }
                 
-                // 1. 检查安全策略（对于加密文件，签名验证将在解密后进行）
+                // 1. 验证补丁文件格式和包名
+                String formatError = validatePatchFormat(patchFile);
+                if (formatError != null) {
+                    if (callback != null) {
+                        callback.onError(formatError);
+                    }
+                    return;
+                }
+                
+                // 2. 检查安全策略（对于加密文件，签名验证将在解密后进行）
                 String securityError = checkSecurityPolicy(patchFile);
                 if (securityError != null) {
                     if (callback != null) {
@@ -289,7 +298,7 @@ public class HotUpdateHelper {
                     return;
                 }
                 
-                // 2. 处理 AES 加密（如果是 .enc 文件）
+                // 3. 处理 AES 加密（如果是 .enc 文件）
                 File actualPatchFile = patchFile;
                 File tempDecryptedFile = null;
                 boolean isAesEncrypted = patchFile.getName().endsWith(".enc");
@@ -1332,6 +1341,143 @@ public class HotUpdateHelper {
     public SecurityManager getSecurityManager() {
         ensureSecurityManagerInitialized();
         return securityManager;
+    }
+    
+    /**
+     * 验证补丁文件格式和包名
+     * 
+     * @param patchFile 补丁文件
+     * @return 错误消息，如果验证通过返回 null
+     */
+    private String validatePatchFormat(File patchFile) {
+        try {
+            // 1. 检查文件扩展名（必须是 .zip 或 .enc）
+            String fileName = patchFile.getName().toLowerCase(java.util.Locale.ROOT);
+            boolean isZip = fileName.endsWith(".zip");
+            boolean isEnc = fileName.endsWith(".enc");
+            
+            if (!isZip && !isEnc) {
+                return "⚠️ 补丁文件格式错误！\n\n" +
+                       "补丁文件必须是 ZIP 格式（.zip）或加密格式（.enc）\n" +
+                       "当前文件: " + fileName;
+            }
+            
+            // 2. 检查是否是有效的 ZIP 文件（通过魔数验证）
+            if (isZip && !isValidZipFile(patchFile)) {
+                return "⚠️ 补丁文件损坏！\n\n" +
+                       "文件不是有效的 ZIP 格式，可能已损坏或被篡改。";
+            }
+            
+            // 3. 读取并验证 patch.json
+            PatchInfo patchInfo = readPatchInfoFromZip(patchFile);
+            if (patchInfo == null) {
+                return "⚠️ 补丁文件格式错误！\n\n" +
+                       "无法读取补丁信息（patch.json）\n" +
+                       "请确保补丁文件是通过官方工具生成的。";
+            }
+            
+            // 4. 验证包名（必须与当前应用包名一致）
+            String patchPackageName = patchInfo.getPackageName();
+            String currentPackageName = context.getPackageName();
+            
+            if (patchPackageName == null || patchPackageName.isEmpty()) {
+                logW("⚠️ 补丁未包含包名信息（向后兼容旧版本补丁）");
+                // 向后兼容：旧版本补丁可能没有包名字段，允许继续
+            } else if (!patchPackageName.equals(currentPackageName)) {
+                return "⚠️ 补丁包名不匹配！\n\n" +
+                       "补丁包名: " + patchPackageName + "\n" +
+                       "当前应用: " + currentPackageName + "\n\n" +
+                       "此补丁不适用于当前应用，请使用正确的补丁文件。";
+            }
+            
+            logI("✅ 补丁格式验证通过");
+            logI("   - 文件格式: " + (isZip ? "ZIP" : "加密"));
+            logI("   - 补丁版本: " + patchInfo.getPatchVersion());
+            logI("   - 目标版本: " + patchInfo.getTargetAppVersion());
+            logI("   - 包名: " + (patchPackageName != null ? patchPackageName : "未指定（兼容模式）"));
+            
+            return null; // 验证通过
+            
+        } catch (Exception e) {
+            logE("补丁格式验证失败", e);
+            return "⚠️ 补丁格式验证失败！\n\n" +
+                   "错误: " + e.getMessage();
+        }
+    }
+    
+    /**
+     * 检查是否是有效的 ZIP 文件（通过魔数验证）
+     */
+    private boolean isValidZipFile(File file) {
+        try {
+            byte[] header = new byte[4];
+            java.io.FileInputStream fis = new java.io.FileInputStream(file);
+            int bytesRead = fis.read(header);
+            fis.close();
+            
+            if (bytesRead < 4) {
+                return false;
+            }
+            
+            // ZIP 魔数: PK (0x50 0x4B 0x03 0x04)
+            return header[0] == 0x50 && header[1] == 0x4B && 
+                   header[2] == 0x03 && header[3] == 0x04;
+        } catch (Exception e) {
+            logE("检查 ZIP 魔数失败", e);
+            return false;
+        }
+    }
+    
+    /**
+     * 从 ZIP 文件中读取 patch.json
+     */
+    private PatchInfo readPatchInfoFromZip(File patchFile) {
+        java.util.zip.ZipFile zipFile = null;
+        try {
+            zipFile = new java.util.zip.ZipFile(patchFile);
+            java.util.zip.ZipEntry patchJsonEntry = zipFile.getEntry("patch.json");
+            
+            if (patchJsonEntry == null) {
+                logE("补丁文件中未找到 patch.json");
+                return null;
+            }
+            
+            // 读取 patch.json 内容
+            java.io.InputStream is = zipFile.getInputStream(patchJsonEntry);
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+            while ((bytesRead = is.read(buffer)) != -1) {
+                baos.write(buffer, 0, bytesRead);
+            }
+            is.close();
+            
+            String jsonContent = baos.toString("UTF-8");
+            
+            // 解析 JSON
+            org.json.JSONObject jsonObject = new org.json.JSONObject(jsonContent);
+            
+            // 创建 PatchInfo 对象
+            PatchInfo patchInfo = new PatchInfo();
+            patchInfo.setPatchId(jsonObject.optString("patchId", null));
+            patchInfo.setPatchVersion(jsonObject.optString("patchVersion", null));
+            patchInfo.setTargetAppVersion(jsonObject.optString("targetVersion", null));
+            patchInfo.setPackageName(jsonObject.optString("packageName", null));
+            
+            return patchInfo;
+            
+        } catch (Exception e) {
+            logE("读取 patch.json 失败", e);
+            return null;
+        } finally {
+            if (zipFile != null) {
+                try {
+                    zipFile.close();
+                } catch (Exception e) {
+                    // ignore
+                }
+            }
+        }
     }
     
     /**
