@@ -24,6 +24,7 @@
 ## 📚 文档导航
 
 - **[快速开始](#-快速开始)** - 5 分钟上手
+- **[单例模式使用](docs/SINGLETON_PATTERN.md)** - 🆕 优雅的单例模式 API
 - **[安全机制](#-安全机制)** - 签名验证和加密保护
 - **[架构说明](docs/ARCHITECTURE.md)** - 核心算法统一性说明
 - **[Demo 下载](https://github.com/706412584/Android_hotupdate/releases/tag/demo)** - 下载体验 APK
@@ -128,7 +129,45 @@ patchGenerator {
 
 ### 3. 应用补丁
 
-使用 `HotUpdateHelper` 类（推荐）：
+**方式一：使用单例模式（推荐）** 🆕
+
+```java
+// 在 Application 中初始化
+public class MyApplication extends Application {
+    @Override
+    protected void attachBaseContext(Context base) {
+        super.attachBaseContext(base);
+        
+        // 初始化单例（只需一次）
+        HotUpdateHelper.init(base);
+        
+        // 加载已应用的补丁
+        HotUpdateHelper.getInstance().loadPatchIfNeeded();
+    }
+}
+
+// 在 Activity 中使用（无需传 context）
+HotUpdateHelper.getInstance().applyPatch(patchFile, new HotUpdateHelper.Callback() {
+    @Override
+    public void onProgress(int percent, String message) {
+        Log.d(TAG, "进度: " + percent + "% - " + message);
+    }
+    
+    @Override
+    public void onSuccess(HotUpdateHelper.PatchResult result) {
+        Log.i(TAG, "热更新成功！");
+        Log.i(TAG, "补丁版本: " + result.patchVersion);
+        // DEX 和 SO 立即生效，资源更新需要重启应用
+    }
+    
+    @Override
+    public void onError(String message) {
+        Log.e(TAG, "热更新失败: " + message);
+    }
+});
+```
+
+**方式二：直接创建实例（向后兼容）**
 
 ```java
 HotUpdateHelper helper = new HotUpdateHelper(context);
@@ -152,12 +191,35 @@ helper.applyPatch(patchFile, new HotUpdateHelper.Callback() {
 });
 ```
 
+> 💡 **单例模式优势**：
+> - ✅ 更简洁：初始化后无需每次传 context
+> - ✅ 更安全：未初始化会抛出清晰的异常提示
+> - ✅ 更高效：只创建一个实例，节省内存
+> - 📖 **详细说明**：[单例模式使用指南](docs/SINGLETON_PATTERN.md)
+
 > 💡 **更多应用方式**：
 > - [使用 PatchApplier](docs/USAGE.md#使用-patchapplier) - 更灵活的控制
 > - [使用底层 API](docs/USAGE.md#使用底层-api) - DexPatcher、SoPatcher、ResourcePatcher
 > - [使用 UpdateManager](docs/USAGE.md#使用-updatemanager) - 服务器端更新流程
 
 ### 4. 在 Application 中集成
+
+**方式一：使用单例模式（推荐）** 🆕
+
+```java
+public class MyApplication extends Application {
+    @Override
+    protected void attachBaseContext(Context base) {
+        super.attachBaseContext(base);
+        
+        // 初始化并加载补丁（推荐方式）
+        HotUpdateHelper.init(base);
+        HotUpdateHelper.getInstance().loadPatchIfNeeded();
+    }
+}
+```
+
+**方式二：直接创建实例（向后兼容）**
 
 ```java
 public class MyApplication extends Application {
