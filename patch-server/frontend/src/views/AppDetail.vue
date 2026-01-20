@@ -1264,7 +1264,7 @@ const loadApp = async () => {
 const loadVersions = async () => {
   versionsLoading.value = true;
   try {
-    const { data } = await api.get(`/versions/${route.params.id}`);
+    const { data } = await api.get(`/versions/${app.value.app_id}`);
     versions.value = data.versions;
   } catch (error) {
     ElMessage.error('加载版本列表失败');
@@ -1297,7 +1297,7 @@ const handleUploadVersion = async () => {
     formData.append('isForceUpdate', versionForm.isForceUpdate);
     formData.append('minSupportedVersion', versionForm.minSupportedVersion);
 
-    await api.post(`/versions/${route.params.id}/upload`, formData, {
+    await api.post(`/versions/${app.value.app_id}/upload`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
 

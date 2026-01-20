@@ -256,3 +256,25 @@
     overflow-x: auto;
   }
 }
+
+  /* 表单按钮组优化 - 居中对齐 */
+  .el-form-item:last-child {
+    text-align: center;
+  }
+  
+  .el-form-item:last-child .el-form-item__content {
+    justify-content: center !important;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .el-form-item:last-child .el-button {
+    margin: 0 !important;
+  }
+  
+  /* 应用设置页面按钮组 */
+  .settings-form .el-form-item:last-child .el-form-item__content {
+    justify-content: center !important;
+  }
+}

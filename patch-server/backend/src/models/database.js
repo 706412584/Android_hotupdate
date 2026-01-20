@@ -231,8 +231,22 @@ function initDatabase() {
         missingColumns.push({ name: 'reviewed_at', sql: `ALTER TABLE apps ADD COLUMN reviewed_at DATETIME` });
       }
       
+      // 强制更新相关字段
+      if (!columnNames.includes('force_update_enabled')) {
+        missingColumns.push({ name: 'force_update_enabled', sql: `ALTER TABLE apps ADD COLUMN force_update_enabled BOOLEAN DEFAULT 0` });
+      }
+      if (!columnNames.includes('latest_version')) {
+        missingColumns.push({ name: 'latest_version', sql: `ALTER TABLE apps ADD COLUMN latest_version VARCHAR(20)` });
+      }
+      if (!columnNames.includes('force_update_url')) {
+        missingColumns.push({ name: 'force_update_url', sql: `ALTER TABLE apps ADD COLUMN force_update_url VARCHAR(500)` });
+      }
+      if (!columnNames.includes('force_update_message')) {
+        missingColumns.push({ name: 'force_update_message', sql: `ALTER TABLE apps ADD COLUMN force_update_message TEXT` });
+      }
+      
       if (missingColumns.length > 0) {
-        console.log('🔄 迁移数据库：添加审核相关字段...');
+        console.log('🔄 迁移数据库：添加缺失字段...');
         missingColumns.forEach(col => {
           db.run(col.sql, (err) => {
             if (err) {
