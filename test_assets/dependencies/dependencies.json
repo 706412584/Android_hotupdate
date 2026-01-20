@@ -1,0 +1,105 @@
+{
+  "name": "update-module-dependencies",
+  "version": "1.0.0",
+  "description": "update 模块的第三方依赖库",
+  "generated": "2026-01-20",
+  "dependencies": [
+    {
+      "name": "zip4j",
+      "group": "net.lingala.zip4j",
+      "artifact": "zip4j",
+      "version": "2.11.5",
+      "file": "zip4j-2.11.5.jar",
+      "size": 210022,
+      "sizeFormatted": "205.10 KB",
+      "type": "jar",
+      "license": "Apache License 2.0",
+      "url": "https://github.com/srikanth-lingala/zip4j",
+      "description": "支持密码保护的 ZIP 文件处理库",
+      "maven": "net.lingala.zip4j:zip4j:2.11.5"
+    },
+    {
+      "name": "apksig-android",
+      "group": "com.github.MuntashirAkon",
+      "artifact": "apksig-android",
+      "version": "4.4.0",
+      "file": "apksig-android-4.4.0.aar",
+      "size": 431750,
+      "sizeFormatted": "421.63 KB",
+      "type": "aar",
+      "license": "Apache License 2.0",
+      "url": "https://github.com/MuntashirAkon/apksig-android",
+      "description": "APK 签名和验证库（Android 移植版）",
+      "maven": "com.github.MuntashirAkon:apksig-android:4.4.0"
+    },
+    {
+      "name": "bcprov-jdk18on",
+      "group": "org.bouncycastle",
+      "artifact": "bcprov-jdk18on",
+      "version": "1.77",
+      "file": "bcprov-jdk18on-1.77.jar",
+      "size": 8372357,
+      "sizeFormatted": "8176.13 KB",
+      "type": "jar",
+      "license": "MIT License",
+      "url": "https://www.bouncycastle.org/",
+      "description": "BouncyCastle 加密库，提供 JKS keystore 支持",
+      "maven": "org.bouncycastle:bcprov-jdk18on:1.77"
+    },
+    {
+      "name": "bcpkix-jdk18on",
+      "group": "org.bouncycastle",
+      "artifact": "bcpkix-jdk18on",
+      "version": "1.77",
+      "file": "bcpkix-jdk18on-1.77.jar",
+      "size": 1113642,
+      "sizeFormatted": "1087.54 KB",
+      "type": "jar",
+      "license": "MIT License",
+      "url": "https://www.bouncycastle.org/",
+      "description": "BouncyCastle PKIX 库，提供 X.509 证书处理",
+      "maven": "org.bouncycastle:bcpkix-jdk18on:1.77"
+    },
+    {
+      "name": "bcutil-jdk18on",
+      "group": "org.bouncycastle",
+      "artifact": "bcutil-jdk18on",
+      "version": "1.77",
+      "file": "bcutil-jdk18on-1.77.jar",
+      "size": 681001,
+      "sizeFormatted": "665.04 KB",
+      "type": "jar",
+      "license": "MIT License",
+      "url": "https://www.bouncycastle.org/",
+      "description": "BouncyCastle 工具库（bcpkix 的传递依赖）",
+      "maven": "org.bouncycastle:bcutil-jdk18on:1.77",
+      "transitive": true,
+      "parent": "org.bouncycastle:bcpkix-jdk18on:1.77"
+    }
+  ],
+  "excluded": [
+    {
+      "maven": "androidx.appcompat:appcompat:1.6.1",
+      "reason": "Android 标准库，由 Android SDK 提供"
+    },
+    {
+      "maven": "com.google.android.material:material:1.10.0",
+      "reason": "Android Material 组件，由 Android SDK 提供"
+    }
+  ],
+  "local": [
+    {
+      "file": "update/libs/zipsigner.jar",
+      "description": "ZipSigner 库，用于 JKS 签名的降级方案"
+    }
+  ],
+  "internal": [
+    {
+      "module": "patch-core",
+      "description": "项目内部模块，提供 JKSHelper 等工具"
+    }
+  ],
+  "totalSize": 10808772,
+  "totalSizeFormatted": "10.31 MB",
+  "count": 5
+}

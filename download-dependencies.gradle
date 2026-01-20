@@ -1,0 +1,82 @@
+// 下载 update 模块的依赖到 test_assets/dependencies
+
+task downloadDependencies {
+    doLast {
+        def outputDir = file("test_assets/dependencies")
+        outputDir.mkdirs()
+        
+        // 定义需要下载的依赖（排除 appcompat 和 material）
+        def dependencies = [
+            'net.lingala.zip4j:zip4j:2.11.5',
+            'com.github.MuntashirAkon:apksig-android:4.4.0',
+            'org.bouncycastle:bcprov-jdk18on:1.77',
+            'org.bouncycastle:bcpkix-jdk18on:1.77'
+        ]
+        
+        println "开始下载依赖到: ${outputDir.absolutePath}"
+        println "=" * 80
+        
+        dependencies.each { dep ->
+            println "\n正在处理: ${dep}"
+            
+            try {
+                def config = configurations.detachedConfiguration(
+                    project.dependencies.create(dep)
+                )
+                
+                config.resolvedConfiguration.resolvedArtifacts.each { artifact ->
+                    def file = artifact.file
+                    def destFile = new File(outputDir, file.name)
+                    
+                    if (!destFile.exists()) {
+                        println "  下载: ${file.name}"
+                        java.nio.file.Files.copy(
+                            file.toPath(),
+                            destFile.toPath(),
+                            java.nio.file.StandardCopyOption.REPLACE_EXISTING
+                        )
+                        println "  ✓ 已保存到: ${destFile.name}"
+                    } else {
+                        println "  ⊙ 已存在: ${destFile.name}"
+                    }
+                    
+                    // 打印依赖信息
+                    println "    组: ${artifact.moduleVersion.id.group}"
+                    println "    名: ${artifact.moduleVersion.id.name}"
+                    println "    版本: ${artifact.moduleVersion.id.version}"
+                }
+                
+                // 下载传递依赖
+                config.resolvedConfiguration.firstLevelModuleDependencies.each { moduleDep ->
+                    moduleDep.allModuleArtifacts.each { artifact ->
+                        def file = artifact.file
+                        def destFile = new File(outputDir, file.name)
+                        
+                        if (!destFile.exists()) {
+                            println "  [传递] 下载: ${file.name}"
+                            java.nio.file.Files.copy(
+                                file.toPath(),
+                                destFile.toPath(),
+                                java.nio.file.StandardCopyOption.REPLACE_EXISTING
+                            )
+                            println "  ✓ 已保存到: ${destFile.name}"
+                        }
+                    }
+                }
+                
+            } catch (Exception e) {
+                println "  ✗ 下载失败: ${e.message}"
+            }
+        }
+        
+        println "\n" + "=" * 80
+        println "下载完成！"
+        println "输出目录: ${outputDir.absolutePath}"
+        
+        // 列出所有下载的文件
+        println "\n已下载的文件:"
+        outputDir.listFiles().sort().each { file ->
+            println "  - ${file.name} (${String.format('%.2f', file.length() / 1024.0)} KB)"
+        }
+    }
+}

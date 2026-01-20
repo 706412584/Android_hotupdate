@@ -3,6 +3,9 @@ plugins {
     id 'maven-publish'
 }
 
+// 应用下载依赖脚本
+apply from: "${rootProject.projectDir}/download-dependencies.gradle"
+
 android {
     namespace 'com.orange.update'
     compileSdk 36
