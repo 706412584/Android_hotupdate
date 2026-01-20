@@ -51,6 +51,10 @@ public class HotUpdateHelper {
     
     private static final String TAG = "HotUpdateHelper";
     
+    // 单例实例（使用 volatile 保证线程安全）
+    private static volatile HotUpdateHelper sInstance;
+    private static final Object sLock = new Object();
+    
     private final Context context;
     private PatchStorage storage;  // 延迟初始化
     private PatchApplier applier;  // 延迟初始化
@@ -69,7 +73,66 @@ public class HotUpdateHelper {
     private static final String KEY_REQUIRE_ENCRYPTION = "require_encryption";
     
     /**
-     * 构造函数
+     * 初始化单例实例（推荐在 Application.onCreate 中调用）
+     * 
+     * 初始化后，可以直接调用 getInstance() 获取实例，无需传入 context。
+     * 
+     * @param context 应用上下文
+     */
+    public static void init(Context context) {
+        if (sInstance == null) {
+            synchronized (sLock) {
+                if (sInstance == null) {
+                    sInstance = new HotUpdateHelper(context);
+                }
+            }
+        }
+    }
+    
+    /**
+     * 获取单例实例
+     * 
+     * 注意：调用此方法前需要先调用 init(context) 初始化。
+     * 如果未初始化，会抛出 IllegalStateException。
+     * 
+     * @return HotUpdateHelper 单例实例
+     * @throws IllegalStateException 如果未调用 init() 初始化
+     */
+    public static HotUpdateHelper getInstance() {
+        if (sInstance == null) {
+            throw new IllegalStateException(
+                "HotUpdateHelper not initialized. Please call HotUpdateHelper.init(context) first, " +
+                "typically in Application.onCreate() or Application.attachBaseContext()."
+            );
+        }
+        return sInstance;
+    }
+    
+    /**
+     * 获取单例实例（带 context 参数，向后兼容）
+     * 
+     * 如果实例未初始化，会自动初始化。
+     * 推荐使用 init(context) + getInstance() 的方式。
+     * 
+     * @param context 应用上下文
+     * @return HotUpdateHelper 单例实例
+     */
+    public static HotUpdateHelper getInstance(Context context) {
+        if (sInstance == null) {
+            synchronized (sLock) {
+                if (sInstance == null) {
+                    sInstance = new HotUpdateHelper(context);
+                }
+            }
+        }
+        return sInstance;
+    }
+    
+    /**
+     * 构造函数（向后兼容，仍然支持直接 new）
+     * 
+     * 推荐使用 getInstance(context) 获取单例实例。
+     * 
      * @param context 应用上下文
      */
     public HotUpdateHelper(Context context) {

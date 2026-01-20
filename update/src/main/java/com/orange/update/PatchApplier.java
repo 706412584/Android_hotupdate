@@ -380,6 +380,7 @@ public class PatchApplier {
         // 注入补丁
         try {
             String patchPath = appliedFile.getAbsolutePath();
+            String resourcePath = patchPath; // 资源路径可能不同于 DEX 路径
             
             // 检查补丁是否已经注入
             if (DexPatcher.isPatchInjected(context, patchPath)) {
@@ -387,15 +388,40 @@ public class PatchApplier {
                 return;
             }
             
-            // 注入 Dex 补丁
+            // 注入 Dex 补丁（使用原始补丁文件）
             DexPatcher.injectPatchDex(context, patchPath);
             Log.d(TAG, "Dex patch loaded successfully");
             
             // 加载资源补丁（如果存在）
             if (hasResourcePatch(appliedFile)) {
+                Log.d(TAG, "Patch contains resources, checking for merged resources");
+                
+                // 检查是否已经有合并后的资源文件
+                File mergedResourceFile = new File(storage.getAppliedDir(), "merged_resources.apk");
+                
+                if (mergedResourceFile.exists()) {
+                    Log.i(TAG, "Using existing merged resources: " + mergedResourceFile.length());
+                    resourcePath = mergedResourceFile.getAbsolutePath();
+                } else {
+                    Log.d(TAG, "Merged resources not found, merging now...");
+                    
+                    // 使用 ResourceMerger 合并资源（Tinker 的方式）
+                    boolean merged = ResourceMerger.mergeResources(
+                        context, appliedFile, mergedResourceFile);
+                    
+                    if (merged && mergedResourceFile.exists()) {
+                        Log.i(TAG, "Resources merged successfully, size: " + mergedResourceFile.length());
+                        // 使用合并后的完整资源包
+                        resourcePath = mergedResourceFile.getAbsolutePath();
+                    } else {
+                        Log.w(TAG, "Failed to merge resources, using patch directly");
+                    }
+                }
+                
                 try {
-                    ResourcePatcher.loadPatchResources(context, patchPath);
-                    Log.d(TAG, "Resource patch loaded successfully");
+                    // 使用合并后的完整资源包加载资源
+                    ResourcePatcher.loadPatchResources(context, resourcePath);
+                    Log.d(TAG, "Resource patch loaded successfully from: " + resourcePath);
                 } catch (ResourcePatcher.PatchResourceException e) {
                     Log.w(TAG, "Failed to load resource patch", e);
                 }

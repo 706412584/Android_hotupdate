@@ -14,6 +14,11 @@ import android.content.Context;
  * 使用方法：
  * 1. 继承此类或在自己的 Application 中调用 HotUpdateHelper.loadPatchIfNeeded()
  * 2. 在 AndroidManifest.xml 中配置：android:name=".PatchApplication"
+ * 
+ * 单例模式说明：
+ * - 推荐方式1：HotUpdateHelper.init(context) + getInstance()
+ * - 推荐方式2：HotUpdateHelper.getInstance(context)
+ * - 向后兼容：仍然支持 new HotUpdateHelper(context)
  */
 public class PatchApplication extends Application {
 
@@ -21,10 +26,15 @@ public class PatchApplication extends Application {
     protected void attachBaseContext(Context base) {
         super.attachBaseContext(base);
 
-        // 使用 HotUpdateHelper 加载补丁（推荐方式）
-        // 包含完整性验证、签名验证、ZIP密码解密等功能
-        // 注意：HotUpdateHelper 使用延迟初始化，在 attachBaseContext 阶段可以安全使用
-        HotUpdateHelper helper = new HotUpdateHelper(base);
-        helper.loadPatchIfNeeded();
+        // 方式1：init + getInstance（最推荐，最简洁）
+        HotUpdateHelper.init(base);
+        HotUpdateHelper.getInstance().loadPatchIfNeeded();
+        
+        // 方式2：getInstance(context)（推荐，向后兼容）
+        // HotUpdateHelper.getInstance(base).loadPatchIfNeeded();
+        
+        // 方式3：直接创建实例（向后兼容，仍然支持）
+        // HotUpdateHelper helper = new HotUpdateHelper(base);
+        // helper.loadPatchIfNeeded();
     }
 }
