@@ -31,14 +31,18 @@ router.get('/check-update', async (req, res) => {
       if (appConfig && appConfig.force_update_enabled === 1 && appConfig.latest_version) {
         if (compareVersion(version, appConfig.latest_version) < 0) {
           return res.json({
-            hasUpdate: false,
-            forceUpdate: true,
-            latestVersion: appConfig.latest_version,
-            downloadUrl: appConfig.force_update_url || '',
-            message: appConfig.force_update_message || '发现新版本，请更新到最新版本',
-            securityConfig: {
-              requireSignature: appConfig.require_signature === 1,
-              requireEncryption: appConfig.require_encryption === 1
+            code: 0,
+            message: '发现新版本',
+            data: {
+              hasUpdate: false,
+              forceUpdate: true,
+              latestVersion: appConfig.latest_version,
+              downloadUrl: appConfig.force_update_url || '',
+              message: appConfig.force_update_message || '发现新版本，请更新到最新版本',
+              securityConfig: {
+                requireSignature: appConfig.require_signature === 1,
+                requireEncryption: appConfig.require_encryption === 1
+              }
             }
           });
         }
@@ -68,12 +72,15 @@ router.get('/check-update', async (req, res) => {
 
     if (!patch) {
       return res.json({
-        hasUpdate: false,
+        code: 0,
         message: '当前已是最新版本',
-        securityConfig: appConfig ? {
-          requireSignature: appConfig.require_signature === 1,
-          requireEncryption: appConfig.require_encryption === 1
-        } : null
+        data: {
+          hasUpdate: false,
+          securityConfig: appConfig ? {
+            requireSignature: appConfig.require_signature === 1,
+            requireEncryption: appConfig.require_encryption === 1
+          } : null
+        }
       });
     }
 
@@ -85,12 +92,15 @@ router.get('/check-update', async (req, res) => {
         const percentage = hash % 100;
         if (percentage >= patch.rollout_percentage) {
           return res.json({
-            hasUpdate: false,
+            code: 0,
             message: '当前已是最新版本',
-            securityConfig: appConfig ? {
-              requireSignature: appConfig.require_signature === 1,
-              requireEncryption: appConfig.require_encryption === 1
-            } : null
+            data: {
+              hasUpdate: false,
+              securityConfig: appConfig ? {
+                requireSignature: appConfig.require_signature === 1,
+                requireEncryption: appConfig.require_encryption === 1
+              } : null
+            }
           });
         }
       }
@@ -100,25 +110,34 @@ router.get('/check-update', async (req, res) => {
     const downloadUrl = `${req.protocol}://${req.get('host')}/api/client/download/${patch.id}`;
 
     res.json({
-      hasUpdate: true,
-      patch: {
-        version: patch.version,
-        patchId: patch.patch_id,
-        baseVersion: patch.base_version,
-        downloadUrl,
-        md5: patch.md5,
-        size: patch.file_size,
-        description: patch.description,
-        forceUpdate: patch.force_update === 1
-      },
-      securityConfig: appConfig ? {
-        requireSignature: appConfig.require_signature === 1,
-        requireEncryption: appConfig.require_encryption === 1
-      } : null
+      code: 0,
+      message: '发现新版本',
+      data: {
+        hasUpdate: true,
+        patchInfo: {
+          patchId: patch.patch_id,
+          patchVersion: patch.version,
+          targetAppVersion: patch.version,
+          packageName: '', // 可选字段
+          downloadUrl,
+          fileSize: patch.file_size,
+          md5: patch.md5,
+          createTime: new Date(patch.created_at).getTime(),
+          description: patch.description || ''
+        },
+        securityConfig: appConfig ? {
+          requireSignature: appConfig.require_signature === 1,
+          requireEncryption: appConfig.require_encryption === 1
+        } : null
+      }
     });
   } catch (error) {
     console.error('检查更新失败:', error);
-    res.status(500).json({ error: '检查更新失败' });
+    res.status(500).json({ 
+      code: -1,
+      message: '检查更新失败',
+      data: null
+    });
   }
 });
 

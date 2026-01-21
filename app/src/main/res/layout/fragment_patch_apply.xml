@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView 
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp"
+    android:background="@color/background">
+    
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+        
+        <!-- 补丁选择卡片 -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="@color/surface"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp">
+            
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+                
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="📋 选择补丁文件"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:layout_marginBottom="12dp" />
+                
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_select_patch"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="选择补丁文件"
+                    android:textAllCaps="false"
+                    android:textSize="15sp"
+                    app:backgroundTint="@color/secondary_container"
+                    app:cornerRadius="8dp"
+                    android:textColor="@color/secondary"
+                    app:icon="@drawable/ic_folder"
+                    app:iconTint="@color/secondary" />
+                
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        
+        <!-- 应用按钮 -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_apply"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="应用补丁"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textAllCaps="false"
+            android:enabled="false"
+            app:backgroundTint="@color/accent"
+            android:textColor="@color/text_on_primary"
+            app:cornerRadius="12dp"
+            android:layout_marginBottom="8dp" />
+        
+        <!-- 清除按钮 -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_clear"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="清除补丁"
+            android:textAllCaps="false"
+            android:visibility="gone"
+            app:strokeColor="@color/error"
+            android:textColor="@color/error"
+            app:cornerRadius="8dp"
+            android:layout_marginBottom="16dp"
+            style="@style/Widget.Material3.Button.OutlinedButton" />
+        
+        <!-- 进度条 -->
+        <ProgressBar
+            android:id="@+id/progress_bar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            android:progressTint="@color/accent"
+            android:layout_marginBottom="16dp" />
+        
+        <!-- 状态文本 -->
+        <TextView
+            android:id="@+id/tv_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="等待选择补丁..."
+            android:textSize="14sp"
+            android:textColor="@color/text_secondary"
+            android:layout_marginBottom="16dp" />
+        
+        <!-- 信息卡片 -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="@color/surface"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp">
+            
+            <TextView
+                android:id="@+id/tv_info"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="=== 补丁信息 ===\n\n📋 补丁: 未选择\n\n热更新状态: 未应用"
+                android:textSize="13sp"
+                android:textColor="@color/text_primary"
+                android:fontFamily="monospace"
+                android:padding="16dp" />
+            
+        </com.google.android.material.card.MaterialCardView>
+        
+    </LinearLayout>
+</ScrollView>

@@ -265,6 +265,7 @@ public class HotUpdateHelper {
     public void applyPatch(File patchFile, Callback callback) {
         ensureExecutorInitialized();
         ensureStorageInitialized();
+        ensureApplierInitialized();  // 添加这一行！
         
         if (patchFile == null || !patchFile.exists()) {
             if (callback != null) {
@@ -487,6 +488,34 @@ public class HotUpdateHelper {
             }
         } catch (Exception e) {
             Log.w(TAG, "Failed to check patch file type", e);
+        }
+        
+        return false;
+    }
+    
+    /**
+     * 检查补丁是否包含 DEX 文件
+     */
+    private boolean hasDexPatch(File patchFile) {
+        try {
+            // 检查是否是 ZIP/APK 文件
+            java.util.zip.ZipFile zipFile = new java.util.zip.ZipFile(patchFile);
+            java.util.Enumeration<? extends java.util.zip.ZipEntry> entries = zipFile.entries();
+            
+            while (entries.hasMoreElements()) {
+                java.util.zip.ZipEntry entry = entries.nextElement();
+                String name = entry.getName();
+                
+                // 检查是否有 .dex 文件
+                if (name.endsWith(".dex")) {
+                    zipFile.close();
+                    logD("✓ 检测到 DEX 文件: " + name);
+                    return true;
+                }
+            }
+            zipFile.close();
+        } catch (Exception e) {
+            logD("检查 DEX 文件失败: " + e.getMessage());
         }
         
         return false;
@@ -1258,8 +1287,15 @@ public class HotUpdateHelper {
     public String getDisplayVersion(String originalVersion) {
         if (hasAppliedPatch()) {
             PatchInfo patchInfo = storage.getAppliedPatchInfo();
-            if (patchInfo != null && patchInfo.getPatchVersion() != null) {
-                return patchInfo.getPatchVersion() + " (热更新)";
+            if (patchInfo != null) {
+                // 优先使用 targetAppVersion（目标应用版本），其次使用 patchVersion
+                String version = patchInfo.getTargetAppVersion();
+                if (version == null || version.isEmpty()) {
+                    version = patchInfo.getPatchVersion();
+                }
+                if (version != null && !version.isEmpty()) {
+                    return version + " (热更新)";
+                }
             }
         }
         return originalVersion;
@@ -1611,8 +1647,52 @@ public class HotUpdateHelper {
      */
     private PatchInfo createPatchInfo(File patchFile) {
         PatchInfo patchInfo = new PatchInfo();
-        patchInfo.setPatchId("patch_" + System.currentTimeMillis());
-        patchInfo.setPatchVersion("1.0");
+        
+        // 尝试从补丁包中的 patch.json 读取版本信息
+        try {
+            java.util.zip.ZipFile zipFile = new java.util.zip.ZipFile(patchFile);
+            java.util.zip.ZipEntry patchJsonEntry = zipFile.getEntry("patch.json");
+            
+            if (patchJsonEntry != null) {
+                // 读取 patch.json
+                java.io.InputStream is = zipFile.getInputStream(patchJsonEntry);
+                java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+                byte[] buffer = new byte[4096];
+                int len;
+                while ((len = is.read(buffer)) != -1) {
+                    baos.write(buffer, 0, len);
+                }
+                is.close();
+                String jsonContent = baos.toString("UTF-8");
+                zipFile.close();
+                
+                // 解析 JSON
+                org.json.JSONObject json = new org.json.JSONObject(jsonContent);
+                
+                // 读取版本信息
+                String patchId = json.optString("patchId", "patch_" + System.currentTimeMillis());
+                String patchVersion = json.optString("patchVersion", "1.0");
+                String targetVersion = json.optString("targetVersion", patchVersion);
+                String packageName = json.optString("packageName", null);
+                
+                patchInfo.setPatchId(patchId);
+                patchInfo.setPatchVersion(patchVersion);
+                patchInfo.setTargetAppVersion(targetVersion);
+                patchInfo.setPackageName(packageName);
+                
+                logD("✓ 从 patch.json 读取版本信息: " + patchVersion + " (目标: " + targetVersion + ")");
+            } else {
+                // 没有 patch.json，使用默认值
+                logW("补丁包中没有 patch.json，使用默认版本信息");
+                patchInfo.setPatchId("patch_" + System.currentTimeMillis());
+                patchInfo.setPatchVersion("1.0");
+            }
+        } catch (Exception e) {
+            logW("读取 patch.json 失败，使用默认版本信息: " + e.getMessage());
+            patchInfo.setPatchId("patch_" + System.currentTimeMillis());
+            patchInfo.setPatchVersion("1.0");
+        }
+        
         patchInfo.setDownloadUrl("file://" + patchFile.getAbsolutePath());
         patchInfo.setFileSize(patchFile.length());
         
@@ -2073,7 +2153,7 @@ public class HotUpdateHelper {
                     result.patchId = currentPatchInfo.getPatchId();
                     result.patchVersion = currentPatchInfo.getPatchVersion();
                     result.patchSize = originalPatchFile.length();
-                    result.dexInjected = DexPatcher.isSupported();
+                    result.dexInjected = hasDexPatch(actualPatchFile) && DexPatcher.isSupported();
                     result.soLoaded = false;
                     result.resourcesLoaded = hasResourcePatch(actualPatchFile);
                     result.needsRestart = false; // 已经应用过，不需要重启
@@ -2106,6 +2186,10 @@ public class HotUpdateHelper {
                 }
                 return;
             }
+            
+            // 5.1 保存补丁信息到 SharedPreferences（重要！用于版本显示）
+            storage.savePatchInfo(patchInfo);
+            logD("✓ 保存补丁信息: " + patchInfo.getPatchId() + ", 版本: " + patchInfo.getPatchVersion());
             
             // 保存 ZIP 密码标记（如果是 ZIP 密码保护的）
             if (isZipPasswordProtected) {
@@ -2184,7 +2268,7 @@ public class HotUpdateHelper {
                 result.patchSize = originalPatchFile.length();
                 
                 // 检查补丁内容类型
-                result.dexInjected = DexPatcher.isSupported(); // DEX 热更新是否支持
+                result.dexInjected = hasDexPatch(actualPatchFile) && DexPatcher.isSupported(); // DEX 文件存在且支持注入
                 result.soLoaded = false; // SO 库加载状态（暂不支持检测）
                 result.resourcesLoaded = hasResourcePatch(actualPatchFile); // 检查是否包含资源
                 result.needsRestart = result.resourcesLoaded; // 资源更新需要重启

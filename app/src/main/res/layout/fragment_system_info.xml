@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView 
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp"
+    android:background="@color/background">
+    
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+        
+        <!-- 版本信息卡片 -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="@color/primary_container"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp">
+            
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="24dp"
+                android:gravity="center">
+                
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="当前版本"
+                    android:textSize="14sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginBottom="8dp" />
+                
+                <TextView
+                    android:id="@+id/tv_version"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="v1.5"
+                    android:textSize="36sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/primary" />
+                
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        
+        <!-- 功能按钮 -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="@color/surface"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp">
+            
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+                
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="⚙️ 系统检查"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:layout_marginBottom="12dp" />
+                
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_check_engine"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="检查引擎状态"
+                    android:textAllCaps="false"
+                    app:strokeColor="@color/primary"
+                    android:textColor="@color/primary"
+                    app:cornerRadius="8dp"
+                    android:layout_marginBottom="8dp"
+                    style="@style/Widget.Material3.Button.OutlinedButton" />
+                
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_check_storage"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="检查存储空间"
+                    android:textAllCaps="false"
+                    app:strokeColor="@color/secondary"
+                    android:textColor="@color/secondary"
+                    app:cornerRadius="8dp"
+                    android:layout_marginBottom="8dp"
+                    style="@style/Widget.Material3.Button.OutlinedButton" />
+                
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_security_policy"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="安全策略设置"
+                    android:textAllCaps="false"
+                    app:strokeColor="@color/warning"
+                    android:textColor="@color/warning"
+                    app:cornerRadius="8dp"
+                    android:layout_marginBottom="8dp"
+                    style="@style/Widget.Material3.Button.OutlinedButton" />
+                
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_server_test"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="服务端测试"
+                    android:textAllCaps="false"
+                    app:strokeColor="@color/accent"
+                    android:textColor="@color/accent"
+                    app:cornerRadius="8dp"
+                    style="@style/Widget.Material3.Button.OutlinedButton" />
+                
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        
+        <!-- 系统信息卡片 -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="@color/surface"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp">
+            
+            <TextView
+                android:id="@+id/tv_info"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="=== 系统信息 ===\n\n加载中..."
+                android:textSize="13sp"
+                android:textColor="@color/text_primary"
+                android:fontFamily="monospace"
+                android:padding="16dp" />
+            
+        </com.google.android.material.card.MaterialCardView>
+        
+    </LinearLayout>
+</ScrollView>
