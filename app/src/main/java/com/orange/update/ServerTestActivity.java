@@ -459,6 +459,26 @@ public class ServerTestActivity extends AppCompatActivity {
                 Log.d(TAG, "服务器响应码: " + responseCode);
                 String response = readResponse(conn);
                 Log.d(TAG, "服务器响应内容: " + response);
+                
+                // 解析响应，查看详细信息
+                try {
+                    JSONObject debugJson = new JSONObject(response);
+                    Log.d(TAG, "=== 调试信息 ===");
+                    Log.d(TAG, "code: " + debugJson.optInt("code"));
+                    Log.d(TAG, "message: " + debugJson.optString("message"));
+                    if (debugJson.has("data")) {
+                        JSONObject data = debugJson.getJSONObject("data");
+                        Log.d(TAG, "hasUpdate: " + data.optBoolean("hasUpdate"));
+                        if (data.has("patchInfo")) {
+                            JSONObject patchInfo = data.getJSONObject("patchInfo");
+                            Log.d(TAG, "patchVersion: " + patchInfo.optString("patchVersion"));
+                            Log.d(TAG, "baseVersion: " + patchInfo.optString("baseVersion", "未知"));
+                        }
+                    }
+                    Log.d(TAG, "=== 调试信息结束 ===");
+                } catch (Exception e) {
+                    Log.w(TAG, "解析调试信息失败: " + e.getMessage());
+                }
 
                 if (responseCode == 200) {
                     JSONObject jsonResponse = new JSONObject(response);
