@@ -21,20 +21,27 @@ import android.content.Context;
  * - 向后兼容：仍然支持 new HotUpdateHelper(context)
  */
 public class PatchApplication extends Application {
+    
+    // 配置应用ID（用于服务端更新检查）
+    // 请在服务端创建应用后，将 app_id 填写到这里
+    private static final String APP_ID = "app_1768842255205_vvdrmg";  // TODO: 替换为实际的应用ID
 
     @Override
     protected void attachBaseContext(Context base) {
         super.attachBaseContext(base);
 
         // 方式1：init + getInstance（最推荐，最简洁）
-        HotUpdateHelper.init(base);
+        // 初始化时设置应用ID
+        HotUpdateHelper.init(base, APP_ID);
         HotUpdateHelper.getInstance().loadPatchIfNeeded();
         
         // 方式2：getInstance(context)（推荐，向后兼容）
+        // HotUpdateHelper.getInstance(base).setAppId(APP_ID);
         // HotUpdateHelper.getInstance(base).loadPatchIfNeeded();
         
         // 方式3：直接创建实例（向后兼容，仍然支持）
         // HotUpdateHelper helper = new HotUpdateHelper(base);
+        // helper.setAppId(APP_ID);
         // helper.loadPatchIfNeeded();
     }
 }

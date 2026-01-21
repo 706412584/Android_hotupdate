@@ -152,12 +152,19 @@ patchGenerator {
 ```java
 // 在 Application 中初始化
 public class MyApplication extends Application {
+    
+    // 配置应用ID（可选，用于服务端更新检查）
+    private static final String APP_ID = "your-app-id";  // 从服务端获取
+    
     @Override
     protected void attachBaseContext(Context base) {
         super.attachBaseContext(base);
         
-        // 初始化单例（只需一次）
-        HotUpdateHelper.init(base);
+        // 方式1：初始化时设置应用ID（推荐）
+        HotUpdateHelper.init(base, APP_ID);
+        
+        // 方式2：不设置应用ID（向后兼容）
+        // HotUpdateHelper.init(base);
         
         // 加载已应用的补丁
         HotUpdateHelper.getInstance().loadPatchIfNeeded();
@@ -189,6 +196,10 @@ HotUpdateHelper.getInstance().applyPatch(patchFile, new HotUpdateHelper.Callback
 
 ```java
 HotUpdateHelper helper = new HotUpdateHelper(context);
+
+// 可选：设置应用ID（用于服务端更新检查）
+helper.setAppId("your-app-id");
+
 helper.applyPatch(patchFile, new HotUpdateHelper.Callback() {
     @Override
     public void onProgress(int percent, String message) {
@@ -214,6 +225,12 @@ helper.applyPatch(patchFile, new HotUpdateHelper.Callback() {
 > - ✅ 更安全：未初始化会抛出清晰的异常提示
 > - ✅ 更高效：只创建一个实例，节省内存
 > - 📖 **详细说明**：[单例模式使用指南](docs/SINGLETON_PATTERN.md)
+
+> 💡 **应用ID说明**：
+> - 应用ID（appId）是可选的，仅在使用服务端更新检查时需要
+> - 在服务端创建应用后，将 `app_id` 配置到 Application 中
+> - 不使用服务端功能时可以不设置，不影响本地补丁应用
+> - 📖 **详细说明**：[服务端集成指南](#客户端集成)
 
 > 💡 **更多应用方式**：
 > - [使用 PatchApplier](docs/USAGE.md#使用-patchapplier) - 更灵活的控制
@@ -462,22 +479,109 @@ npm run dev  # http://localhost:5173
 > ⚠️ **注意**: 此服务仅供测试和学习使用，有存储和流量限制，不建议在生产环境使用。生产环境请参考 [部署指南](patch-server/README.md#部署) 自行部署。
 ### 客户端集成
 
+#### 1. 配置应用ID
+
+在 Application 中初始化时设置应用ID：
+
 ```java
-// 检查更新
-UpdateManager updateManager = new UpdateManager(context, "http://your-server.com");
-updateManager.checkUpdate("your-app-id", "1.0.0", new UpdateCallback() {
+public class MyApplication extends Application {
+    
+    // 从服务端创建应用后获取 app_id
+    private static final String APP_ID = "app_1234567890_xxxxx";
+    
+    @Override
+    protected void attachBaseContext(Context base) {
+        super.attachBaseContext(base);
+        
+        // 初始化时设置应用ID
+        HotUpdateHelper.init(base, APP_ID);
+        HotUpdateHelper.getInstance().loadPatchIfNeeded();
+    }
+}
+```
+
+#### 2. 检查更新
+
+使用 UpdateManager 检查并下载更新：
+
+```java
+// 创建 UpdateManager
+UpdateManager updateManager = new UpdateManager(context, "https://your-server.com");
+
+// 检查更新（会自动使用配置的 APP_ID）
+String currentVersion = "1.0.0";  // 当前应用版本
+updateManager.checkUpdate(HotUpdateHelper.getInstance().getAppId(), currentVersion, new UpdateCallback() {
     @Override
     public void onUpdateAvailable(PatchInfo patchInfo) {
-        // 有新补丁可用
-        updateManager.downloadAndApply(patchInfo, callback);
+        // 有新补丁可用，下载并应用
+        updateManager.downloadAndApply(patchInfo, new UpdateCallback() {
+            @Override
+            public void onDownloadProgress(long current, long total) {
+                int progress = (int) ((current * 100) / total);
+                Log.d(TAG, "下载进度: " + progress + "%");
+            }
+            
+            @Override
+            public void onDownloadComplete(PatchInfo patchInfo) {
+                Log.i(TAG, "下载完成");
+            }
+            
+            @Override
+            public void onApplyProgress(int percent, String message) {
+                Log.d(TAG, "安装进度: " + percent + "% - " + message);
+            }
+            
+            @Override
+            public void onApplySuccess(PatchResult result) {
+                Log.i(TAG, "热更新成功！");
+                // 提示用户重启应用
+            }
+            
+            @Override
+            public void onError(int errorCode, String message) {
+                Log.e(TAG, "更新失败: " + message);
+            }
+        });
     }
     
     @Override
     public void onNoUpdate() {
-        // 已是最新版本
+        Log.i(TAG, "已是最新版本");
+    }
+    
+    @Override
+    public void onError(int errorCode, String message) {
+        Log.e(TAG, "检查更新失败: " + message);
     }
 });
 ```
+
+#### 3. 获取应用ID
+
+**方式一：在服务端管理后台创建应用**
+1. 登录服务端管理后台
+2. 进入"应用管理"页面
+3. 点击"创建应用"
+4. 填写应用信息（应用名称、包名等）
+5. 创建成功后，复制 `app_id` 字段
+
+**方式二：通过 API 创建应用**
+```bash
+curl -X POST https://your-server.com/api/apps \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "app_name": "My App",
+    "package_name": "com.example.myapp",
+    "app_id": "my-app-id"
+  }'
+```
+
+#### 4. 完整示例
+
+查看 Demo 应用中的完整示例：
+- [ServerTestActivity.java](app/src/main/java/com/orange/update/ServerTestActivity.java) - 服务端 API 调用示例
+- [PatchApplication.java](app/src/main/java/com/orange/update/PatchApplication.java) - 应用ID配置示例
 
 > 📖 **详细文档**: [patch-server/README.md](patch-server/README.md)
 

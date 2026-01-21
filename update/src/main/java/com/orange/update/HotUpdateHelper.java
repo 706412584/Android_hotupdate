@@ -63,6 +63,9 @@ public class HotUpdateHelper {
     private ExecutorService executor;  // 延迟初始化
     private final SharedPreferences securityPrefs;
     
+    // 应用配置
+    private String appId;  // 应用ID，用于服务端更新检查
+    
     // 日志回调
     private static LogCallback globalLogCallback;
     private LogCallback logCallback;
@@ -80,10 +83,23 @@ public class HotUpdateHelper {
      * @param context 应用上下文
      */
     public static void init(Context context) {
+        init(context, null);
+    }
+    
+    /**
+     * 初始化单例实例并设置应用ID（推荐在 Application.onCreate 中调用）
+     * 
+     * 初始化后，可以直接调用 getInstance() 获取实例，无需传入 context。
+     * 
+     * @param context 应用上下文
+     * @param appId 应用ID，用于服务端更新检查
+     */
+    public static void init(Context context, String appId) {
         if (sInstance == null) {
             synchronized (sLock) {
                 if (sInstance == null) {
                     sInstance = new HotUpdateHelper(context);
+                    sInstance.setAppId(appId);
                 }
             }
         }
@@ -163,6 +179,25 @@ public class HotUpdateHelper {
      */
     public void setLogCallback(LogCallback callback) {
         this.logCallback = callback;
+    }
+    
+    /**
+     * 设置应用ID
+     * 
+     * @param appId 应用ID，用于服务端更新检查
+     */
+    public void setAppId(String appId) {
+        this.appId = appId;
+        logD("设置应用ID: " + appId);
+    }
+    
+    /**
+     * 获取应用ID
+     * 
+     * @return 应用ID
+     */
+    public String getAppId() {
+        return appId;
     }
     
     /**
