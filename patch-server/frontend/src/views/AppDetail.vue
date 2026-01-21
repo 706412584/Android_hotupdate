@@ -1450,6 +1450,14 @@ const handleUpload = async () => {
     formData.append('base_version', uploadForm.base_version);
     formData.append('description', uploadForm.description);
     formData.append('force_update', uploadForm.force_update);
+    // 🔒 添加包名和 app_id 用于强制验证
+    formData.append('package_name', app.value.package_name);
+    formData.append('app_id_string', app.value.app_id);
+
+    console.log('📤 上传补丁，验证信息:');
+    console.log('  - 应用名称:', app.value.app_name);
+    console.log('  - 包名:', app.value.package_name);
+    console.log('  - app_id:', app.value.app_id);
 
     await api.post('/patches/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
@@ -1814,6 +1822,14 @@ const handleGenerate = async () => {
     formData.append('base_version', generateForm.base_version);
     formData.append('description', generateForm.description);
     formData.append('force_update', generateForm.force_update);
+    // 🔒 添加包名和 app_id 用于强制验证
+    formData.append('package_name', app.value.package_name);
+    formData.append('app_id_string', app.value.app_id);
+
+    console.log('🔨 生成补丁，验证信息:');
+    console.log('  - 应用名称:', app.value.app_name);
+    console.log('  - 包名:', app.value.package_name);
+    console.log('  - app_id:', app.value.app_id);
 
     // 模拟进度
     const progressInterval = setInterval(() => {

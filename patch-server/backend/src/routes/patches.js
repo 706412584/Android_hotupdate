@@ -100,12 +100,37 @@ router.post('/upload', authenticateToken, upload.single('file'), async (req, res
     // 获取应用信息和审核状态
     const app = await db.get('SELECT * FROM apps WHERE id = ?', [numericAppId]);
     
-    console.log('  - 查询到的应用:', app ? `ID=${app.id}, app_id=${app.app_id}, name=${app.app_name}` : '未找到');
+    console.log('  - 查询到的应用:', app ? `ID=${app.id}, app_id=${app.app_id}, name=${app.app_name}, package=${app.package_name}` : '未找到');
     
     if (!app) {
       fs.unlinkSync(req.file.path);
       return res.status(404).json({ error: '应用不存在' });
     }
+
+    // 🔒 强制验证：确保补丁的包名和 app_id 与应用匹配
+    const { package_name: reqPackageName, app_id_string: reqAppIdString } = req.body;
+    
+    if (reqPackageName && reqPackageName !== app.package_name) {
+      fs.unlinkSync(req.file.path);
+      console.log('  ❌ 包名不匹配！请求:', reqPackageName, '应用:', app.package_name);
+      return res.status(400).json({ 
+        error: '包名不匹配',
+        message: `补丁包名 "${reqPackageName}" 与应用包名 "${app.package_name}" 不一致，请确认选择了正确的应用`
+      });
+    }
+    
+    if (reqAppIdString && reqAppIdString !== app.app_id) {
+      fs.unlinkSync(req.file.path);
+      console.log('  ❌ app_id 不匹配！请求:', reqAppIdString, '应用:', app.app_id);
+      return res.status(400).json({ 
+        error: 'app_id 不匹配',
+        message: `补丁 app_id "${reqAppIdString}" 与应用 app_id "${app.app_id}" 不一致，请确认选择了正确的应用`
+      });
+    }
+    
+    console.log('  ✅ 包名和 app_id 验证通过');
+    console.log('     包名:', app.package_name);
+    console.log('     app_id:', app.app_id);
     
     if (!app) {
       fs.unlinkSync(req.file.path);
@@ -223,7 +248,7 @@ router.get('/', authenticateToken, async (req, res) => {
     const { user } = req;
     const offset = (page - 1) * limit;
 
-    let sql = 'SELECT p.*, a.app_name FROM patches p LEFT JOIN apps a ON p.app_id = a.id WHERE 1=1';
+    let sql = 'SELECT p.*, a.app_name, a.package_name FROM patches p LEFT JOIN apps a ON p.app_id = a.id WHERE 1=1';
     const params = [];
 
     // 普通用户只能看到自己应用的补丁

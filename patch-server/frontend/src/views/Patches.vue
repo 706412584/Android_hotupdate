@@ -18,11 +18,11 @@
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
-            <el-select v-model="filterAppId" placeholder="筛选应用" clearable @change="loadPatches" style="width: 200px">
+            <el-select v-model="filterAppId" placeholder="筛选应用" clearable @change="loadPatches" style="width: 250px">
               <el-option
                 v-for="app in apps"
                 :key="app.id"
-                :label="app.app_name"
+                :label="`${app.app_name} (${app.package_name})`"
                 :value="app.id"
               />
             </el-select>
@@ -36,8 +36,16 @@
       
       <el-table :data="patches" v-loading="loading" @selection-change="handleSelectionChange">
         <el-table-column type="selection" width="55" />
-        <el-table-column prop="version" label="版本" width="120" />
-        <el-table-column prop="base_version" label="基础版本" width="120" />
+        <el-table-column prop="app_name" label="应用" width="200">
+          <template #default="{ row }">
+            <div style="display: flex; flex-direction: column;">
+              <span style="font-weight: bold;">{{ row.app_name || '未知应用' }}</span>
+              <span style="font-size: 12px; color: #999;">{{ row.package_name || 'N/A' }}</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column prop="version" label="版本" width="100" />
+        <el-table-column prop="base_version" label="基础版本" width="100" />
         <el-table-column prop="description" label="描述" show-overflow-tooltip />
         <el-table-column prop="file_size" label="大小" width="100">
           <template #default="{ row }">
@@ -106,9 +114,14 @@
             <el-option
               v-for="app in apps"
               :key="app.id"
-              :label="app.app_name"
+              :label="`${app.app_name} (${app.package_name})`"
               :value="app.id"
-            />
+            >
+              <div style="display: flex; flex-direction: column;">
+                <span style="font-weight: bold;">{{ app.app_name }}</span>
+                <span style="font-size: 12px; color: #999;">{{ app.package_name }}</span>
+              </div>
+            </el-option>
           </el-select>
         </el-form-item>
         <el-form-item label="补丁版本" required>
@@ -370,6 +383,13 @@ const handleUpload = async () => {
   try {
     uploading.value = true
     
+    // 获取选中的应用信息
+    const selectedApp = apps.value.find(app => app.id === uploadForm.app_id)
+    if (!selectedApp) {
+      ElMessage.error('未找到选中的应用')
+      return
+    }
+    
     const formData = new FormData()
     formData.append('file', selectedFile.value)
     formData.append('app_id', uploadForm.app_id)
@@ -377,6 +397,14 @@ const handleUpload = async () => {
     formData.append('baseVersion', uploadForm.baseVersion)
     formData.append('description', uploadForm.description)
     formData.append('forceUpdate', uploadForm.forceUpdate)
+    // 🔒 添加包名和 app_id 用于强制验证
+    formData.append('package_name', selectedApp.package_name)
+    formData.append('app_id_string', selectedApp.app_id)
+    
+    console.log('📤 上传补丁，验证信息:')
+    console.log('  - 应用名称:', selectedApp.app_name)
+    console.log('  - 包名:', selectedApp.package_name)
+    console.log('  - app_id:', selectedApp.app_id)
     
     await api.uploadPatch(formData, (progressEvent) => {
       const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
