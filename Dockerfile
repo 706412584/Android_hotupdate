@@ -39,11 +39,9 @@ RUN npm install --production
 # 复制后端源代码
 COPY patch-server/backend/ ./
 
-# 创建必要的目录
+# 创建必要的目录并复制 patch-cli 工具
 RUN mkdir -p tools
-
-# 复制本地构建的 patch-cli 工具（需要先在本地构建）
-COPY patch-cli/build/libs/patch-cli-1.3.8-all.jar ./tools/patch-cli.jar
+COPY patch-server/tools/patch-cli.jar ./tools/patch-cli.jar
 
 # 从前端构建阶段复制构建产物
 COPY --from=frontend-builder /app/frontend/dist ./public
