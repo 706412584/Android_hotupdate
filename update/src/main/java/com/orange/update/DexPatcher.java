@@ -190,21 +190,35 @@ public class DexPatcher {
     
     /**
      * Android 10+ 注入方案 (API 29+)
-     * 需要处理非 SDK 接口限制
+     * 需要处理非 SDK 接口限制和可写目录限制
      */
     private static void injectPatchForQ(Context context, String patchDexPath, File optimizedDir) 
             throws Exception {
-        // Android 10+ 对非 SDK 接口有更严格的限制
-        // 但 BaseDexClassLoader.pathList 和 DexPathList.dexElements 仍然可以访问
-        // 因为它们是灰名单 (greylist) 中的接口
+        // Android 10+ 不允许从可写目录加载 DEX 文件
+        // 需要将补丁文件复制到代码缓存目录（只读）
+        
+        File patchFile = new File(patchDexPath);
+        File codeCacheDir = context.getCodeCacheDir();
+        File readOnlyPatchFile = new File(codeCacheDir, "patch_" + System.currentTimeMillis() + ".zip");
+        
+        // 复制补丁文件到代码缓存目录
+        try {
+            copyFile(patchFile, readOnlyPatchFile);
+            // 设置为只读
+            readOnlyPatchFile.setReadOnly();
+            Log.d(TAG, "Copied patch to code cache dir: " + readOnlyPatchFile.getPath());
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to copy patch file", e);
+            throw new Exception("Failed to copy patch to code cache directory", e);
+        }
         
         ClassLoader classLoader = context.getClassLoader();
         Object pathList = getPathList(classLoader);
         Object[] oldElements = getDexElements(pathList);
         
-        // Android 10+ 推荐使用 InMemoryDexClassLoader，但为了兼容性仍使用 DexClassLoader
+        // 使用只读的补丁文件路径
         DexClassLoader patchClassLoader = new DexClassLoader(
-                patchDexPath,
+                readOnlyPatchFile.getAbsolutePath(),
                 optimizedDir.getAbsolutePath(),
                 null,
                 classLoader.getParent()
@@ -217,7 +231,40 @@ public class DexPatcher {
         Object[] newElements = combineArray(patchElements, oldElements);
         setDexElements(pathList, newElements);
         
-        Log.d(TAG, "Patch injected for Android Q+");
+        Log.d(TAG, "Patch injected for Android Q+ from read-only location");
+    }
+    
+    /**
+     * 复制文件
+     */
+    private static void copyFile(File source, File dest) throws Exception {
+        java.io.FileInputStream fis = null;
+        java.io.FileOutputStream fos = null;
+        try {
+            fis = new java.io.FileInputStream(source);
+            fos = new java.io.FileOutputStream(dest);
+            byte[] buffer = new byte[8192];
+            int length;
+            while ((length = fis.read(buffer)) > 0) {
+                fos.write(buffer, 0, length);
+            }
+            fos.flush();
+        } finally {
+            if (fis != null) {
+                try {
+                    fis.close();
+                } catch (Exception e) {
+                    // ignore
+                }
+            }
+            if (fos != null) {
+                try {
+                    fos.close();
+                } catch (Exception e) {
+                    // ignore
+                }
+            }
+        }
     }
 
     
