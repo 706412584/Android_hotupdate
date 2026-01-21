@@ -25,16 +25,30 @@
 
 ## 📚 文档导航
 
+### 快速开始
 - **[快速开始](#-快速开始)** - 5 分钟上手
+- **[Demo 下载](https://github.com/706412584/Android_hotupdate/releases/tag/demo)** - 下载体验 APK
+
+### 核心功能
 - **[单例模式使用](docs/SINGLETON_PATTERN.md)** - 🆕 优雅的单例模式 API
 - **[版本检测和自动清除](docs/VERSION_CHECK.md)** - 🆕 APK 版本检测，覆盖安装自动清除补丁
 - **[补丁格式检测](docs/PATCH_FORMAT_VALIDATION.md)** - 🆕 自动验证补丁格式和包名
 - **[安全机制](#-安全机制)** - 签名验证和加密保护
-- **[架构说明](docs/ARCHITECTURE.md)** - 核心算法统一性说明
-- **[Demo 下载](https://github.com/706412584/Android_hotupdate/releases/tag/demo)** - 下载体验 APK
+
+### 架构和设计
+- **[架构设计](docs/ARCHITECTURE.md)** - 🆕 整体架构、模块设计、核心算法
+- **[性能优化](docs/PERFORMANCE.md)** - 🆕 补丁生成/应用优化、内存优化
+- **[故障排查](docs/TROUBLESHOOTING.md)** - 🆕 常见问题诊断和解决方案
+
+### 详细文档
 - **[详细使用文档](docs/USAGE.md)** - 完整的 API 使用说明
 - **[常见问题](docs/FAQ.md)** - 问题排查指南
 - **[补丁包格式](docs/PATCH_FORMAT.md)** - 补丁包结构详解
+- **[resources.arsc 压缩问题](docs/RESOURCES_ARSC_COMPRESSION_EXPLAINED.md)** - 🆕 为什么不能压缩
+
+### 开发指南
+- **[项目完成度评估](docs/PROJECT_STATUS_AND_ROADMAP.md)** - 🆕 当前状态和开发路线图
+- **[服务端增强](docs/SERVER_ENHANCEMENT.md)** - 🆕 推送通知、CDN 集成
 - **[发布指南](JITPACK_RELEASE.md)** - 如何发布新版本
 
 ## 🌿 分支说明
