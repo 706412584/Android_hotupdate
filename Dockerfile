@@ -42,8 +42,8 @@ COPY patch-server/backend/ ./
 # 创建必要的目录
 RUN mkdir -p tools
 
-# 下载 patch-cli 工具
-RUN wget -O ./tools/patch-cli.jar https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.3.6/patch-cli-1.3.6-all.jar
+# 复制本地构建的 patch-cli 工具（需要先在本地构建）
+COPY patch-cli/build/libs/patch-cli-1.3.8-all.jar ./tools/patch-cli.jar
 
 # 从前端构建阶段复制构建产物
 COPY --from=frontend-builder /app/frontend/dist ./public
