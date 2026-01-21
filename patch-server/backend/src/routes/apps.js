@@ -243,11 +243,34 @@ router.get('/:id', auth, async (req, res) => {
     }
 
     // 获取应用的补丁列表
+    console.log('🔍 查询应用补丁列表:');
+    console.log('  - 应用数据库 ID:', id);
+    console.log('  - 应用 app_id:', app.app_id);
+    
     const patches = await db.query(`
       SELECT * FROM patches
       WHERE app_id = ?
       ORDER BY created_at DESC
     `, [id]);
+    
+    console.log('  - 找到补丁数量:', patches.length);
+    if (patches.length > 0) {
+      console.log('  - 补丁详情:', patches.map(p => ({
+        id: p.id,
+        patch_id: p.patch_id,
+        version: p.version,
+        app_id: p.app_id,
+        created_at: p.created_at
+      })));
+    }
+    
+    // 额外查询：检查是否有 app_id 不匹配的补丁
+    const allPatches = await db.query(`
+      SELECT id, patch_id, version, app_id, created_at
+      FROM patches
+      ORDER BY created_at DESC
+    `);
+    console.log('  - 数据库中所有补丁:', allPatches);
 
     res.json({ ...app, patches });
   } catch (error) {

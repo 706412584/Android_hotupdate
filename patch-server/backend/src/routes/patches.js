@@ -64,6 +64,14 @@ router.post('/upload', authenticateToken, upload.single('file'), async (req, res
       forceUpdate 
     } = req.body;
 
+    console.log('🔍 上传补丁请求参数:');
+    console.log('  - app_id:', app_id, '(类型:', typeof app_id, ')');
+    console.log('  - version:', version);
+    console.log('  - base_version:', base_version);
+    console.log('  - baseVersion:', baseVersion);
+    console.log('  - 用户ID:', req.user.id);
+    console.log('  - 用户角色:', req.user.role);
+
     // 兼容两种命名方式
     const finalBaseVersion = base_version || baseVersion;
     const finalForceUpdate = force_update || forceUpdate || false;
@@ -80,8 +88,24 @@ router.post('/upload', authenticateToken, upload.single('file'), async (req, res
       return res.status(400).json({ error: '应用 ID 不能为空' });
     }
 
+    // 确保 app_id 是数字类型
+    const numericAppId = parseInt(app_id);
+    if (isNaN(numericAppId)) {
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ error: '应用 ID 格式错误' });
+    }
+
+    console.log('  - 转换后的 app_id:', numericAppId, '(类型:', typeof numericAppId, ')');
+
     // 获取应用信息和审核状态
-    const app = await db.get('SELECT * FROM apps WHERE id = ?', [app_id]);
+    const app = await db.get('SELECT * FROM apps WHERE id = ?', [numericAppId]);
+    
+    console.log('  - 查询到的应用:', app ? `ID=${app.id}, app_id=${app.app_id}, name=${app.app_name}` : '未找到');
+    
+    if (!app) {
+      fs.unlinkSync(req.file.path);
+      return res.status(404).json({ error: '应用不存在' });
+    }
     
     if (!app) {
       fs.unlinkSync(req.file.path);
@@ -141,10 +165,10 @@ router.post('/upload', authenticateToken, upload.single('file'), async (req, res
     const result = await db.run(`
       INSERT INTO patches (
         app_id, version, patch_id, base_version, file_path, file_name,
-        file_size, md5, description, force_update
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        file_size, md5, description, force_update, created_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
-      app_id,
+      numericAppId,  // 使用转换后的数字 ID
       version,
       patchId,
       finalBaseVersion,
@@ -153,14 +177,20 @@ router.post('/upload', authenticateToken, upload.single('file'), async (req, res
       req.file.size,
       md5,
       description || '',
-      finalForceUpdate ? 1 : 0
+      finalForceUpdate ? 1 : 0,
+      req.user.id
     ]);
+
+    console.log('✅ 补丁保存成功:');
+    console.log('  - 补丁数据库 ID:', result.id);
+    console.log('  - 关联的应用 ID:', numericAppId);
+    console.log('  - patch_id:', patchId);
 
     res.json({
       message: '补丁上传成功' + (isEncrypted ? '（已加密）' : ''),
       patch: {
         id: result.id,
-        app_id,
+        app_id: numericAppId,
         version,
         patchId,
         baseVersion: finalBaseVersion,
