@@ -441,8 +441,9 @@ patchGenerator {
 ```java
 HotUpdateHelper helper = new HotUpdateHelper(context);
 
-// 强制要求补丁签名（推荐生产环境开启）
-helper.setRequireSignature(true);
+// 签名校验默认已开启，无需显式调用。
+// 如需关闭（不推荐），调用 helper.setRequireSignature(false)（会输出显著告警）。
+// helper.setRequireSignature(true);   // 默认值，可省略
 
 // 应用补丁时会自动验证签名
 helper.applyPatch(patchFile, callback);
@@ -450,8 +451,13 @@ helper.applyPatch(patchFile, callback);
 
 **签名验证原理：**
 - 补丁生成时使用 JarSigner 生成完整的 JAR 签名（META-INF/MANIFEST.MF, .SF, .RSA）
-- 应用补丁时使用 apksig 库验证签名与 APK 签名是否匹配
-- 如果签名不匹配或被删除，补丁会被自动拒绝并清除
+- 应用补丁时使用标准 JAR 签名验证（`java.util.jar.JarFile`）校验补丁完整性，
+  再比对补丁证书与应用 APK 签名证书的公钥是否一致
+- 签名校验**默认开启**；签名缺失、不匹配或校验失败时补丁会被拒绝
+- 注意：补丁是 ZIP 而非 APK，因此**不使用** apksig / `ApkVerifier`
+
+> ⚠️ **安全提示**：签名校验默认开启。若显式调用 `setRequireSignature(false)` 关闭，
+> 未签名或签名不匹配的补丁也会被应用，存在补丁投毒风险，请勿在生产环境关闭。
 
 ### AES 加密保护
 
@@ -489,18 +495,23 @@ helper.applyPatchWithZipPassword(patchFile, zipPassword, callback);
 > - [组合使用签名和加密](docs/USAGE.md#组合使用签名和加密) - 最高安全级别
 > - [安全最佳实践](docs/USAGE.md#安全最佳实践) - 生产环境配置建议
 
-### 防篡改保护
+### 完整性校验（防篡改）
 
-系统自动提供补丁完整性验证和自动恢复功能：
+系统提供补丁完整性校验：
 
 - ✅ **SHA-256 哈希验证**：应用补丁时计算并保存哈希值
 - ✅ **启动时验证**：每次应用启动时验证补丁完整性
-- ✅ **自动恢复**：从加密存储中自动恢复被篡改的补丁
-- ✅ **篡改计数**：最多允许 3 次篡改尝试，超过后自动清除
+- ✅ **篡改计数**：最多允许 3 次篡改尝试，超过后自动清除补丁
+- ⚠️ **恢复能力有限**：从加密存储恢复的功能在当前调用路径下不可用
+  （补丁加载发生在 `Application.attachBaseContext()`，此时 KeyStore 不可用，
+  无法解密 `.enc` 备份）。被篡改的补丁最终会被清除，而不会被自动恢复。
 
-**无需额外配置**，防篡改功能已自动集成到 `PatchApplication` 和 `HotUpdateHelper` 中。
+**无需额外配置**，完整性校验已自动集成到 `PatchApplication` 和 `HotUpdateHelper` 中。
 
-> 📖 **详细说明**：[防篡改保护文档](docs/SECURITY.md)
+> ⚠️ **安全边界**：哈希基线存储在应用私有的 `SharedPreferences` 中，
+> 与受保护的补丁文件处于同一信任域。它能检测**意外损坏**与低权限篡改，
+> 但**无法抵御**能够写入应用私有目录的攻击者（root、备份恢复、同 UID 漏洞）。
+> 如需抵御此类攻击者，应改用签名校验（默认已开启）或硬件支持的密钥方案。
 
 ## 🎯 Demo 应用
 

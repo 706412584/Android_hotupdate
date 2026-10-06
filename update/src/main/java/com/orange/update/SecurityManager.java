@@ -648,14 +648,15 @@ public class SecurityManager {
             return false;
         }
         
-        // 调试模式下跳过签名验证
-        if (debugMode && signaturePublicKey == null) {
-            Log.w(TAG, "Signature verification skipped in debug mode (no public key)");
-            return true;
-        }
-        
+        // 无公钥时一律 fail-closed。
+        // 此前 debugMode 下会直接 return true（视同验证通过），构成验签旁路，已移除。
         if (signaturePublicKey == null) {
-            Log.e(TAG, "No public key available for signature verification");
+            if (debugMode) {
+                Log.w(TAG, "Signature verification unavailable: no public key configured "
+                        + "(debug mode no longer bypasses verification)");
+            } else {
+                Log.e(TAG, "No public key available for signature verification");
+            }
             return false;
         }
         
@@ -702,14 +703,15 @@ public class SecurityManager {
             return false;
         }
         
-        // 调试模式下跳过签名验证
-        if (debugMode && signaturePublicKey == null) {
-            Log.w(TAG, "Signature verification skipped in debug mode (no public key)");
-            return true;
-        }
-        
+        // 无公钥时一律 fail-closed。
+        // 此前 debugMode 下会直接 return true（视同验证通过），构成验签旁路，已移除。
         if (signaturePublicKey == null) {
-            Log.e(TAG, "No public key available for signature verification");
+            if (debugMode) {
+                Log.w(TAG, "Signature verification unavailable: no public key configured "
+                        + "(debug mode no longer bypasses verification)");
+            } else {
+                Log.e(TAG, "No public key available for signature verification");
+            }
             return false;
         }
         

@@ -1,5 +1,48 @@
 # Maven Central 发布记录
 
+## v1.5.0 (2026-10-06)
+
+### 安全修复（重要）
+
+- 🔒 **签名校验默认开启**：`requireSignature` 默认值由 `false` 改为 `true`。
+  未签名或签名不匹配的补丁默认会被拒绝。如需恢复旧行为，调用
+  `setRequireSignature(false)`（会输出显著告警）。
+- 🔒 **移除 debugMode 验签旁路**：`SecurityManager.verifySignature` 与
+  `PatchManager.verifySignature` 在无公钥时不再返回 true，改为 fail-closed。
+- 🔒 **修复完整性基线自我满足**：`recoverPatch` 不再用恢复内容回写
+  `applied_patch_hash`，改为用已知良好基线校验恢复结果。
+- 🔒 **补丁缺少 packageName 时拒绝应用**（此前仅告警放行）。
+- 🔒 **生成侧签名算法由 SHA1withRSA 改为 SHA256withRSA**，与应用侧一致。
+
+### 修复
+
+- 修正 README/FAQ 中「使用 apksig 验证」的错误表述（实际使用标准
+  `java.util.jar.JarFile`），移除指向不存在的 `docs/SECURITY.md` 的链接。
+- 修正英文 README 中不存在的 `setSecurityPolicy()` 示例。
+
+### 说明
+
+- 防篡改基线仍为明文 SHA-256，与补丁同处应用私有目录；能检测意外损坏与
+  低权限篡改，但无法抵御可写入应用私有目录的攻击者。
+- 「从加密存储自动恢复补丁」在当前调用路径下不可用（补丁加载发生在
+  `Application.attachBaseContext()`，此时 KeyStore 不可用）。
+
+### 发布的模块
+
+1. **update:1.5.0**
+2. **patch-core:1.5.0**
+3. **patch-native:1.5.0**
+4. **patch-generator-android:1.5.0**
+5. **patch-cli:1.5.0**
+6. **patch-gradle-plugin:1.5.0**
+
+### 升级提示
+
+从 1.4.0 升级后，**未签名的补丁将默认被拒绝**。请确保补丁使用与应用 APK
+相同的密钥签名，或显式调用 `setRequireSignature(false)`（不推荐）。
+
+
+
 ## v1.3.0 (2026-01-18)
 
 ### 新增功能

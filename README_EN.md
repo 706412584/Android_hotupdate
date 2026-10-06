@@ -89,10 +89,10 @@ We provide a free patch hosting service for testing and learning:
 ```groovy
 dependencies {
     // Hot update core library
-    implementation 'io.github.706412584:update:1.3.8'
+    implementation 'io.github.706412584:update:1.4.0'
     
     // If you need to generate patches on device (optional, not recommended, use official demo APK instead):
-    implementation 'io.github.706412584:patch-generator-android:1.3.8'
+    implementation 'io.github.706412584:patch-generator-android:1.4.0'
     
 }
 ```
@@ -338,15 +338,24 @@ public class MyApplication extends Application {
 
 ### 1. Signature Verification
 
-Verify patch signature matches app signature to prevent tampering:
+Verify the patch signature and match it against the app signature to prevent tampering:
 
 ```java
-// Enable signature verification
-HotUpdateHelper.getInstance().setSecurityPolicy(
-    true,  // requireSignature
-    false  // requireEncryption
-);
+// Signature verification is enabled by DEFAULT — no call required.
+// To disable it (NOT recommended), use helper.setRequireSignature(false)
+// which logs a prominent warning.
+HotUpdateHelper helper = new HotUpdateHelper(context);
+// helper.setRequireSignature(true);  // default, can be omitted
 ```
+
+**How it works:**
+- Patches are signed with a full JAR signature (`META-INF/MANIFEST.MF`, `.SF`, `.RSA`)
+- On apply, the patch is verified with standard JAR signature verification
+  (`java.util.jar.JarFile`), then the patch certificate's public key is compared
+  against the app's APK signing certificate
+- Signature verification is **on by default**; missing, mismatched, or invalid
+  signatures cause the patch to be rejected
+- Patches are ZIP files, not APKs, so **apksig / `ApkVerifier` is NOT used**
 
 ### 2. AES Encryption
 
