@@ -42,6 +42,9 @@ uploads/
 # Log Files
 *.log
 
+# Test tooling artifacts
+.jqwik-database
+
 # Signing files
 *.jks
 *.bks

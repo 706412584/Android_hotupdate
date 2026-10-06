@@ -1,0 +1,129 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 纯 JVM 模块：不依赖 Android SDK / NDK，跑得最快，作为第一道门禁。
+  # 覆盖 patch-core（补丁生成核心逻辑）、patch-cli、patch-gradle-plugin。
+  # ---------------------------------------------------------------------------
+  jvm-tests:
+    name: JVM modules (core / cli / gradle-plugin)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run JVM module tests
+        run: |
+          ./gradlew \
+            :patch-core:test \
+            :patch-cli:test \
+            :patch-gradle-plugin:test \
+            --console=plain
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jvm-test-reports
+          path: |
+            patch-core/build/reports/tests/
+            patch-cli/build/reports/tests/
+            patch-gradle-plugin/build/reports/tests/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  # Android 单元测试：需要 Android SDK，但不需要 NDK。
+  # update 的单元测试为纯 JVM（Md5Utils / VersionUtils），不触及 AndroidKeyStore。
+  # patch-generator-android 依赖 patch-native，但测试链路只编译其 Java 源码，
+  # 不触发 CMake 原生构建，因此无需安装 NDK。
+  #
+  # 未纳入的模块及原因：
+  #   - app：依赖 app/smlieapp.jks，而 *.jks 不入库，新克隆无法构建
+  #   - patch-native：测试为 androidTest，需要真机/模拟器；其原生构建成本高
+  # ---------------------------------------------------------------------------
+  android-tests:
+    name: Android modules (update / generator)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run Android unit tests
+        run: |
+          ./gradlew \
+            :update:testDebugUnitTest \
+            :patch-generator-android:testDebugUnitTest \
+            --console=plain
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-test-reports
+          path: |
+            update/build/reports/tests/
+            patch-generator-android/build/reports/tests/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  # 编译校验：确认 Android 库模块能产出 Release AAR。
+  # ---------------------------------------------------------------------------
+  assemble:
+    name: Assemble Android libraries
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Assemble release AARs
+        run: |
+          ./gradlew \
+            :update:assembleRelease \
+            :patch-generator-android:assembleRelease \
+            --console=plain

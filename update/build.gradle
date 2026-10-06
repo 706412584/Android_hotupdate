@@ -46,7 +46,15 @@ dependencies {
     
     // ZIP handling with password support
     implementation 'net.lingala.zip4j:zip4j:2.11.5'
-    
+
+    // 单元测试：仅覆盖无 Android 依赖的纯工具类（Md5Utils / VersionUtils）。
+    // 需要 Android 环境的类（SecurityManager 依赖 AndroidKeyStore 等）不在单元测试范围内。
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.assertj:assertj-core:3.24.2'
+}
+
+tasks.withType(Test).configureEach {
+    useJUnit()
 }
 
 // 应用 Maven Central 发布配置
