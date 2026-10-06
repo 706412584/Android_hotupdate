@@ -78,6 +78,11 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # 不要使用默认的 packages（tools platform-tools）：Google 已移除 'tools' 包，
+          # 安装它会以 exit code 1 失败。改为使用 runner 预装的 SDK，
+          # 仅接受许可并安装编译所需的 platform。
+          packages: ''
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -117,6 +122,11 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # 不要使用默认的 packages（tools platform-tools）：Google 已移除 'tools' 包，
+          # 安装它会以 exit code 1 失败。改为使用 runner 预装的 SDK，
+          # 仅接受许可并安装编译所需的 platform。
+          packages: ''
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
