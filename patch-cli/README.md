@@ -16,10 +16,10 @@
 
 ```bash
 # 下载最新版本的 fat JAR
-wget https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.3.2/patch-cli-1.3.2-all.jar
+wget https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.4.0/patch-cli-1.4.0-all.jar
 
 # 或使�?curl
-curl -O https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.3.2/patch-cli-1.3.2-all.jar
+curl -O https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.4.0/patch-cli-1.4.0-all.jar
 ```
 
 ### 方式二：�?Release 页面下载
@@ -32,7 +32,7 @@ curl -O https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.3.2/patch
 ./gradlew :patch-cli:fatJar
 ```
 
-生成�?JAR 文件位于 `patch-cli/build/libs/patch-cli-1.3.2-all.jar`�?
+生成�?JAR 文件位于 `patch-cli/build/libs/patch-cli-1.4.0-all.jar`�?
 
 ## 使用方法
 

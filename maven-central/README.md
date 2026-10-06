@@ -30,7 +30,7 @@ publish.bat
 ### 2. �?Central Portal 中发�?
 
 1. 访问：https://central.sonatype.com/publishing/deployments
-2. 找到刚上传的 deployment（名称：patch-core-1.3.0�?
+2. 找到刚上传的 deployment（名称：patch-core-1.4.0�?
 3. 等待状态变�?"VALIDATED"（约 2-5 分钟�?
 4. 点击 "Publish" 按钮
 5. 确认发布
@@ -50,7 +50,7 @@ publish.bat
   - `patch-core` - 核心补丁算法
   - `patch-generator-android` - Android 补丁生成�?
   - `update` - 热更新核心库（推荐）
-- **Version**: `1.3.0`
+- **Version**: `1.4.0`
 - **GPG 密钥 ID**: `94CEE4A6C60913C4`
 - **密钥密码**: `706412584`
 
@@ -67,15 +67,15 @@ publish.bat
 ```groovy
 dependencies {
     // 热更新核心库（推�?- 包含完整功能�?
-    implementation 'io.github.706412584:update:1.3.0'
+    implementation 'io.github.706412584:update:1.4.0'
     
     // 或者单独使用：
     
     // 核心补丁算法
-    implementation 'io.github.706412584:patch-core:1.3.0'
+    implementation 'io.github.706412584:patch-core:1.4.0'
     
     // Android 补丁生成�?
-    implementation 'io.github.706412584:patch-generator-android:1.3.0'
+    implementation 'io.github.706412584:patch-generator-android:1.4.0'
 }
 ```
 
@@ -86,7 +86,7 @@ dependencies {
 <dependency>
     <groupId>io.github.706412584</groupId>
     <artifactId>update</artifactId>
-    <version>1.3.0</version>
+    <version>1.4.0</version>
 </dependency>
 
 <!-- 或者单独使用： -->
@@ -95,22 +95,22 @@ dependencies {
 <dependency>
     <groupId>io.github.706412584</groupId>
     <artifactId>patch-core</artifactId>
-    <version>1.3.0</version>
+    <version>1.4.0</version>
 </dependency>
 
 <!-- Android 补丁生成�?-->
 <dependency>
     <groupId>io.github.706412584</groupId>
     <artifactId>patch-generator-android</artifactId>
-    <version>1.3.0</version>
+    <version>1.4.0</version>
 </dependency>
 ```
 
 ## 发布新版�?
 
 1. 更新版本号：
-   - 编辑 `../maven-publish.gradle`
-   - 修改 `pomVersion = '1.3.0'` 为新版本�?
+   - 编辑 `../build.gradle`（pomVersion 的唯一真源）
+   - 修改 `pomVersion = '1.4.0'` 为新版本�?
 
 2. 运行发布脚本�?
    ```bash
@@ -154,7 +154,7 @@ gradlew.bat :patch-core:publishMavenPublicationToLocalRepository
 
 检查构建产物：
 ```bash
-dir patch-core\build\repo\io\github\706412584\patch-core\1.3.0
+dir patch-core\build\repo\io\github\706412584\patch-core\1.4.0
 ```
 
 ### 上传失败
@@ -181,15 +181,15 @@ io/
 └── github/
     └── 706412584/
         └── patch-core/
-            └── 1.3.0/
-                ├── patch-core-1.3.0.jar
-                ├── patch-core-1.3.0.jar.asc
-                ├── patch-core-1.3.0.pom
-                ├── patch-core-1.3.0.pom.asc
-                ├── patch-core-1.3.0-sources.jar
-                ├── patch-core-1.3.0-sources.jar.asc
-                ├── patch-core-1.3.0-javadoc.jar
-                ├── patch-core-1.3.0-javadoc.jar.asc
+            └── 1.4.0/
+                ├── patch-core-1.4.0.jar
+                ├── patch-core-1.4.0.jar.asc
+                ├── patch-core-1.4.0.pom
+                ├── patch-core-1.4.0.pom.asc
+                ├── patch-core-1.4.0-sources.jar
+                ├── patch-core-1.4.0-sources.jar.asc
+                ├── patch-core-1.4.0-javadoc.jar
+                ├── patch-core-1.4.0-javadoc.jar.asc
                 └── 所有校验和文件 (.md5, .sha1, .sha256, .sha512)
 ```
 

@@ -47,8 +47,11 @@ uploads/
 *.bks
 *.keystore
 /login-demos-main/
-# Maven Central 发布凭证和临时文件
-gradle.properties
+
+# Maven Central 发布产物与临时文件
+# 注意：根目录的 gradle.properties 是「随仓库分发的非机密构建配置」，已被跟踪，
+# 不要在此忽略它。凭证请放在 ~/.gradle/gradle.properties 或环境变量中。
+/bundle.zip
 maven-central/secring.gpg
 maven-central/*.asc
 maven-central/bundle.zip
@@ -56,3 +59,7 @@ maven-central/deployment_response.json
 maven-central/deployments_list.json
 maven-central/status_response.json
 maven-central/temp_token.txt
+
+# 服务端运行时数据（数据库备份、上传文件）
+patch-server/backend/backups/
+patch-server/backend/uploads/

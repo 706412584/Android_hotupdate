@@ -18,8 +18,9 @@ ext {
     signingSecretKeyRingFile = project.findProperty('signing.secretKeyRingFile') ?: System.getenv('SIGNING_SECRET_KEY_RING_FILE') ?: ''
     
     // POM 信息
+    // pomVersion 的唯一真源在根 build.gradle 的 ext 中，这里只做转发，不要在此写死版本号。
     pomGroupId = 'io.github.706412584'
-    pomVersion = '1.4.0'
+    pomVersion = rootProject.ext.pomVersion
     pomUrl = 'https://github.com/706412584/Android_hotupdate'
     pomScmUrl = 'https://github.com/706412584/Android_hotupdate.git'
     pomScmConnection = 'scm:git:git://github.com/706412584/Android_hotupdate.git'

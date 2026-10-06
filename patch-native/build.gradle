@@ -97,7 +97,7 @@ afterEvaluate {
             release(MavenPublication) {
                 groupId = 'com.github.706412584'
                 artifactId = 'patch-native'
-                version = '1.2.8'
+                version = rootProject.ext.pomVersion
                 
                 artifact bundleReleaseAar
                 artifact androidSourcesJar

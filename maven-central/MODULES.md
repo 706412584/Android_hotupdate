@@ -7,7 +7,7 @@
 ### Maven 坐标
 
 ```groovy
-implementation 'io.github.706412584:patch-core:1.3.0'
+implementation 'io.github.706412584:patch-core:1.4.0'
 ```
 
 ### 包含内容
@@ -31,7 +31,7 @@ Android 补丁生成器，专门�?Android 应用提供补丁生成功能�?
 ### Maven 坐标
 
 ```groovy
-implementation 'io.github.706412584:patch-generator-android:1.3.0'
+implementation 'io.github.706412584:patch-generator-android:1.4.0'
 ```
 
 ### 包含内容
@@ -45,8 +45,8 @@ implementation 'io.github.706412584:patch-generator-android:1.3.0'
 
 ```groovy
 dependencies {
-    api 'io.github.706412584:patch-core:1.3.0'
-    api 'io.github.706412584:patch-native:1.3.0'
+    api 'io.github.706412584:patch-core:1.4.0'
+    api 'io.github.706412584:patch-native:1.4.0'
 }
 ```
 
@@ -65,7 +65,7 @@ dependencies {
 ### Maven 坐标
 
 ```groovy
-implementation 'io.github.706412584:update:1.3.0'
+implementation 'io.github.706412584:update:1.4.0'
 ```
 
 ### 包含内容
@@ -128,8 +128,8 @@ helper.applyPatch(patchFile, new HotUpdateHelper.Callback() {
 如果你只需要生成补丁文件：
 
 ```groovy
-implementation 'io.github.706412584:patch-core:1.3.0'
-implementation 'io.github.706412584:patch-generator-android:1.3.0'
+implementation 'io.github.706412584:patch-core:1.4.0'
+implementation 'io.github.706412584:patch-generator-android:1.4.0'
 ```
 
 ### Android 应用热更新（推荐�?
@@ -137,7 +137,7 @@ implementation 'io.github.706412584:patch-generator-android:1.3.0'
 如果你在开�?Android 应用并需要完整的热更新功能：
 
 ```groovy
-implementation 'io.github.706412584:update:1.3.0'
+implementation 'io.github.706412584:update:1.4.0'
 ```
 
 这是最常用的场景，包含了所有热更新需要的功能�?

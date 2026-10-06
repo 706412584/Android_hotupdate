@@ -1,0 +1,43 @@
+# ============================================================
+# 发布凭证模板
+# ============================================================
+# 用法：复制本文件为 gradle.properties 并填入真实值。
+#   cp gradle.properties.example gradle.properties
+#
+# gradle.properties 已被 .gitignore 忽略，切勿提交真实凭证。
+# 也可以不建此文件，改用同名环境变量（maven-publish.gradle 已支持回退）：
+#   OSSRH_USERNAME / OSSRH_PASSWORD
+#   GRADLE_PUBLISH_KEY / GRADLE_PUBLISH_SECRET
+#   SIGNING_KEY_ID / SIGNING_PASSWORD / SIGNING_SECRET_KEY_RING_FILE
+# ============================================================
+
+# Maven Central (Sonatype) 凭证
+ossrhUsername=your-sonatype-username
+ossrhPassword=your-sonatype-password
+
+# GPG 签名配置
+signing.keyId=YOUR_GPG_KEY_ID
+signing.password=your-gpg-passphrase
+signing.secretKeyRingFile=maven-central/secring.gpg
+
+# Gradle Plugin Portal 凭证
+# 从 https://plugins.gradle.org/ 获取
+gradle.publish.key=your-plugin-portal-key
+gradle.publish.secret=your-plugin-portal-secret
+
+# ------------------------------------------------------------
+# 以下为本地构建配置，非机密，可保留
+# ------------------------------------------------------------
+
+# Android 配置
+android.useAndroidX=true
+android.enableJetifier=true
+
+# Gradle 内存配置
+org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m -XX:+HeapDumpOnOutOfMemoryError
+org.gradle.daemon=true
+org.gradle.parallel=true
+org.gradle.caching=true
+
+# 指定 Gradle 使用的 Java 路径（按本机情况修改）
+# org.gradle.java.home=C:\\Program Files\\zulu17.52.17-ca-jdk17.0.12-win_x64
