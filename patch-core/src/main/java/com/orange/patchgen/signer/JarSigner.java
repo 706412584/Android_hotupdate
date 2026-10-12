@@ -197,7 +197,9 @@ public class JarSigner {
                     "XiaoMozi",  // keyName
                     certificate,  // certificate
                     privateKey,  // privateKey
-                    "SHA1withRSA",  // signatureAlgorithm
+                    // 与应用侧 SecurityManager.SIGNATURE_ALGORITHM 保持一致。
+                    // 此前硬编码 SHA1withRSA，属弱算法，已弃用。
+                    getSignatureAlgorithm(privateKey.getAlgorithm()),  // signatureAlgorithm
                     null);  // publicKeyBytes
                 
                 System.out.println("[JarSigner] ✓ ZipSigner.setKeys() 调用成功");

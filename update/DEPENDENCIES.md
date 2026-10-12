@@ -5,7 +5,7 @@
 update模块只包�?个必需的运行时依赖�?
 
 ```gradle
-implementation 'io.github.706412584:update:1.3.6'
+implementation 'io.github.706412584:update:1.4.0'
 ```
 
 自动引入的依赖：
@@ -37,7 +37,7 @@ update模块使用**标准Java的JarFile API**进行签名验证，无需额外�
 
 ```gradle
 // 最小依�?
-implementation 'io.github.706412584:update:1.3.6'
+implementation 'io.github.706412584:update:1.4.0'
 ```
 
 **功能�?*
@@ -54,7 +54,7 @@ implementation 'io.github.706412584:update:1.3.6'
 如果需要生成补丁，请使用patch-generator-android模块�?
 
 ```gradle
-implementation 'io.github.706412584:patch-generator-android:1.3.6'
+implementation 'io.github.706412584:patch-generator-android:1.4.0'
 ```
 
 **功能�?*

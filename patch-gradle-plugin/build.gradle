@@ -45,7 +45,7 @@ gradlePlugin {
             displayName = 'Android Hot Update Patch Generator Plugin'
             description = 'Gradle plugin for generating hot update patches for Android applications. Supports DEX, resources, SO libraries, and Assets patching.'
             tags.set(['android', 'hot-update', 'patch', 'hotfix', 'gradle-plugin'])
-            version = project.findProperty('pomVersion') ?: '1.4.0'
+            version = rootProject.ext.pomVersion
         }
     }
 }

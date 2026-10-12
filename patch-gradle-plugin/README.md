@@ -46,7 +46,7 @@ buildscript {
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:8.9.0'
-        classpath 'io.github.706412584:patch-gradle-plugin:1.3.9'
+        classpath 'io.github.706412584:patch-gradle-plugin:1.4.0'
     }
 }
 ```
@@ -273,24 +273,24 @@ Apache License 2.0
 ### Maven Central
 
 ```groovy
-implementation 'io.github.706412584:patch-gradle-plugin:1.3.9'
+implementation 'io.github.706412584:patch-gradle-plugin:1.4.0'
 ```
 
 - **Group ID**: `io.github.706412584`
 - **Artifact ID**: `patch-gradle-plugin`
-- **Latest Version**: `1.3.9`
+- **Latest Version**: `1.4.0`
 - **Repository**: https://repo1.maven.org/maven2/io/github/706412584/patch-gradle-plugin/
 
 ### Gradle Plugin Portal
 
 ```groovy
 plugins {
-    id 'io.github.706412584.patch' version '1.3.9'
+    id 'io.github.706412584.patch' version '1.4.0'
 }
 ```
 
 - **Plugin ID**: `io.github.706412584.patch`
-- **Latest Version**: `1.3.9`
+- **Latest Version**: `1.4.0`
 - **Plugin Page**: https://plugins.gradle.org/plugin/io.github.706412584.patch
 
 ### 发布指南

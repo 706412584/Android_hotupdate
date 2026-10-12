@@ -142,7 +142,8 @@ public class PatchApplyViewModel extends ViewModel {
         try {
             // 获取安全策略配置
             SharedPreferences securityPrefs = context.getSharedPreferences(PREFS_SECURITY, Context.MODE_PRIVATE);
-            boolean requireSignature = securityPrefs.getBoolean(KEY_REQUIRE_SIGNATURE, false);
+            // 默认值与 HotUpdateHelper.DEFAULT_REQUIRE_SIGNATURE 保持一致（默认开启签名校验）
+            boolean requireSignature = securityPrefs.getBoolean(KEY_REQUIRE_SIGNATURE, true);
             boolean requireEncryption = securityPrefs.getBoolean(KEY_REQUIRE_ENCRYPTION, false);
             
             Log.d(TAG, "安全策略 - 要求签名: " + requireSignature + ", 要求加密: " + requireEncryption);

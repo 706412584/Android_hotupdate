@@ -236,12 +236,10 @@ public class PatchManager {
         }
         
         if (signature == null || signature.isEmpty()) {
-            // 调试模式下允许无签名
-            if (config.isDebugMode()) {
-                Log.w(TAG, "Signature verification skipped in debug mode");
-                return true;
-            }
-            Log.e(TAG, "Signature is null or empty");
+            // 空签名一律拒绝。
+            // 此前 debugMode 下会 return true（视同验证通过），构成验签旁路，已移除。
+            Log.e(TAG, "Signature is null or empty"
+                    + (config.isDebugMode() ? " (debug mode no longer bypasses verification)" : ""));
             return false;
         }
         

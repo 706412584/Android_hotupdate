@@ -49,7 +49,7 @@ public class PatchPluginIntegrationTest {
         String buildContent = 
             "plugins {\n" +
             "    id 'java'\n" +
-            "    id 'com.orange.patch'\n" +
+            "    id 'io.github.706412584.patch'\n" +
             "}\n" +
             "\n" +
             "patchGenerator {\n" +
@@ -85,7 +85,7 @@ public class PatchPluginIntegrationTest {
         String buildContent = 
             "plugins {\n" +
             "    id 'java'\n" +
-            "    id 'com.orange.patch'\n" +
+            "    id 'io.github.706412584.patch'\n" +
             "}\n" +
             "\n" +
             "patchGenerator {\n" +
@@ -125,7 +125,7 @@ public class PatchPluginIntegrationTest {
         String buildContent = 
             "plugins {\n" +
             "    id 'java'\n" +
-            "    id 'com.orange.patch'\n" +
+            "    id 'io.github.706412584.patch'\n" +
             "}\n" +
             "\n" +
             "patchGenerator {\n" +
@@ -167,7 +167,7 @@ public class PatchPluginIntegrationTest {
         String buildContent = 
             "plugins {\n" +
             "    id 'java'\n" +
-            "    id 'com.orange.patch'\n" +
+            "    id 'io.github.706412584.patch'\n" +
             "}\n" +
             "\n" +
             "patchGenerator {\n" +
@@ -199,7 +199,7 @@ public class PatchPluginIntegrationTest {
         String buildContent = 
             "plugins {\n" +
             "    id 'java'\n" +
-            "    id 'com.orange.patch'\n" +
+            "    id 'io.github.706412584.patch'\n" +
             "}\n" +
             "\n" +
             "patchGenerator {\n" +
@@ -232,7 +232,7 @@ public class PatchPluginIntegrationTest {
         String buildContent = 
             "plugins {\n" +
             "    id 'java'\n" +
-            "    id 'com.orange.patch'\n" +
+            "    id 'io.github.706412584.patch'\n" +
             "}\n" +
             "\n" +
             "patchGenerator {\n" +
@@ -269,7 +269,7 @@ public class PatchPluginIntegrationTest {
         String buildContent = 
             "plugins {\n" +
             "    id 'java'\n" +
-            "    id 'com.orange.patch'\n" +
+            "    id 'io.github.706412584.patch'\n" +
             "}\n" +
             "\n" +
             "patchGenerator {\n" +
@@ -303,7 +303,7 @@ public class PatchPluginIntegrationTest {
         String buildContent = 
             "plugins {\n" +
             "    id 'java'\n" +
-            "    id 'com.orange.patch'\n" +
+            "    id 'io.github.706412584.patch'\n" +
             "}\n" +
             "\n" +
             "patchGenerator {\n" +
@@ -334,7 +334,7 @@ public class PatchPluginIntegrationTest {
         String buildContent = 
             "plugins {\n" +
             "    id 'java'\n" +
-            "    id 'com.orange.patch'\n" +
+            "    id 'io.github.706412584.patch'\n" +
             "}\n" +
             "\n" +
             "patchGenerator {\n" +
@@ -373,7 +373,7 @@ public class PatchPluginIntegrationTest {
             String buildContent = 
                 "plugins {\n" +
                 "    id 'java'\n" +
-                "    id 'com.orange.patch'\n" +
+                "    id 'io.github.706412584.patch'\n" +
                 "}\n" +
                 "\n" +
                 "patchGenerator {\n" +
@@ -411,7 +411,7 @@ public class PatchPluginIntegrationTest {
             String buildContent = 
                 "plugins {\n" +
                 "    id 'java'\n" +
-                "    id 'com.orange.patch'\n" +
+                "    id 'io.github.706412584.patch'\n" +
                 "}\n" +
                 "\n" +
                 "patchGenerator {\n" +

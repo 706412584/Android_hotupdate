@@ -5,7 +5,13 @@ plugins {
     id 'maven-publish'
 }
 
+// 版本号唯一真源：所有模块（含 Maven Central publication、Gradle 插件发布）均从此处派生。
+// 升版本时只改这一行，不要再在各模块 build.gradle 里写死版本。
+ext {
+    pomVersion = '1.5.0'
+}
+
 allprojects {
     group = 'com.github.706412584'
-    version = '1.4.0'
+    version = rootProject.ext.pomVersion
 }

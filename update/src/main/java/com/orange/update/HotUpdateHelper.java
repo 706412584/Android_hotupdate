@@ -59,7 +59,7 @@ public class HotUpdateHelper {
     private PatchStorage storage;  // 延迟初始化
     private PatchApplier applier;  // 延迟初始化
     private SecurityManager securityManager;  // 延迟初始化
-    private final PatchSigner patchSigner;  // 使用 apksig 进行签名验证
+    private final PatchSigner patchSigner;  // 使用标准 JAR 签名验证（java.util.jar.JarFile）
     private ExecutorService executor;  // 延迟初始化
     private final SharedPreferences securityPrefs;
     
@@ -74,7 +74,24 @@ public class HotUpdateHelper {
     private static final String PREFS_SECURITY = "security_policy";
     private static final String KEY_REQUIRE_SIGNATURE = "require_signature";
     private static final String KEY_REQUIRE_ENCRYPTION = "require_encryption";
-    
+
+    /**
+     * 签名校验策略的默认值。
+     *
+     * 安全加固：由 false 改为 true —— 默认强制校验补丁签名。
+     * 此前默认关闭，未签名/签名不匹配的补丁在未显式开启时会被直接应用。
+     *
+     * 如需恢复旧行为，调用 setRequireSignature(false) 显式关闭（会输出显著告警）。
+     */
+    private static final boolean DEFAULT_REQUIRE_SIGNATURE = true;
+
+    /**
+     * 读取签名校验策略。未显式设置时返回 DEFAULT_REQUIRE_SIGNATURE。
+     */
+    private boolean isSignatureRequired() {
+        return securityPrefs.getBoolean(KEY_REQUIRE_SIGNATURE, DEFAULT_REQUIRE_SIGNATURE);
+    }
+
     /**
      * 初始化单例实例（推荐在 Application.onCreate 中调用）
      * 
@@ -155,7 +172,7 @@ public class HotUpdateHelper {
         // 在 attachBaseContext 阶段，getApplicationContext() 返回 null
         // 所以直接使用传入的 context
         this.context = context.getApplicationContext() != null ? context.getApplicationContext() : context;
-        this.patchSigner = new PatchSigner(this.context);  // 使用 apksig
+        this.patchSigner = new PatchSigner(this.context);  // 使用标准 JAR 签名验证
         this.securityPrefs = this.context.getSharedPreferences(PREFS_SECURITY, Context.MODE_PRIVATE);
         
         // SecurityManager、PatchStorage、PatchApplier 延迟初始化
@@ -375,7 +392,7 @@ public class HotUpdateHelper {
                     }
                     
                     // 解密成功后验证签名（如果要求签名）
-                    boolean requireSignature = securityPrefs.getBoolean(KEY_REQUIRE_SIGNATURE, false);
+                    boolean requireSignature = isSignatureRequired();
                     if (requireSignature) {
                         if (callback != null) {
                             callback.onProgress(15, "验证补丁签名...");
@@ -704,16 +721,18 @@ public class HotUpdateHelper {
             if (!verifyPatchIntegrity(appliedFile, prefs)) {
                 logE("⚠️ Patch integrity verification failed");
 
-                // 尝试恢复
+                // 尝试恢复（当前调用路径下不可用：attachBaseContext 阶段 KeyStore 不可用，
+                // SecurityManager 未初始化，解密 .enc 备份会失败。此处将跳过本次加载，
+                // 由篡改计数逻辑在累计 3 次后清除补丁。）
                 if (!recoverPatch(appliedPatchId, appliedFile, prefs)) {
-                    logE("⚠️ Patch recovery failed, patch has been cleared");
+                    logE("⚠️ Patch recovery unavailable, skipping patch load");
                     return;
                 }
             }
             
-            // ✅ APK 签名验证（启动时验证）- 使用 apksig
+            // ✅ 补丁签名验证（启动时验证）- 标准 JAR 签名 + 与应用签名比对
             // 检查安全策略是否要求签名
-            boolean requireSignature = securityPrefs.getBoolean(KEY_REQUIRE_SIGNATURE, false);
+            boolean requireSignature = isSignatureRequired();
             
             // 检查补丁在应用时是否有签名（防止攻击者删除签名文件）
             boolean hadSignatureWhenApplied = prefs.getBoolean("patch_had_signature", false);
@@ -919,6 +938,11 @@ public class HotUpdateHelper {
         // 尝试从加密存储恢复
         logI("Attempting to recover from encrypted storage...");
 
+        // 安全加固：先取出「已知良好」的基线哈希。
+        // 恢复结果必须与该基线一致才算成功；绝不能用恢复出来的内容回写基线，
+        // 否则校验会自我满足，攻击者只要污染 .enc 即可完成投毒。
+        String knownGoodHash = prefs.getString("applied_patch_hash", null);
+
         try {
             java.io.File updateDir = new java.io.File(context.getFilesDir(), "update");
             java.io.File patchesDir = new java.io.File(updateDir, "patches");
@@ -932,6 +956,19 @@ public class HotUpdateHelper {
             // 使用 SecurityManager 解密
             java.io.File decryptedFile = securityManager.decryptPatch(encryptedFile);
 
+            // 先校验恢复出来的内容是否与基线一致，再决定是否替换现网文件
+            String recoveredHash = calculateSHA256(decryptedFile);
+            if (knownGoodHash == null || knownGoodHash.isEmpty() || recoveredHash == null
+                    || !knownGoodHash.equals(recoveredHash)) {
+                logE("⚠️ 恢复内容与已知良好基线不一致，拒绝恢复（疑似 .enc 被污染）");
+                logE("   baseline: " + knownGoodHash);
+                logE("   recovered: " + recoveredHash);
+                if (decryptedFile.exists()) {
+                    decryptedFile.delete();
+                }
+                return false;
+            }
+
             // 替换被篡改的文件
             if (appliedFile.exists()) {
                 appliedFile.delete();
@@ -943,18 +980,10 @@ public class HotUpdateHelper {
                 decryptedFile.delete();
             }
 
-            // 重新计算哈希
-            String newHash = calculateSHA256(appliedFile);
-            if (newHash != null) {
-                prefs.edit().putString("applied_patch_hash", newHash).apply();
-            }
-
-            // 验证恢复结果
-            if (verifyPatchIntegrity(appliedFile, prefs)) {
-                logI("✅ Patch recovered successfully");
-                prefs.edit().putInt("tamper_count", 0).apply();
-                return true;
-            }
+            // 注意：不回写 applied_patch_hash —— 基线保持不变，避免自我满足的校验。
+            logI("✅ Patch recovered and verified against baseline");
+            prefs.edit().putInt("tamper_count", 0).apply();
+            return true;
 
         } catch (Exception e) {
             logE("Failed to recover patch", e);
@@ -1379,11 +1408,22 @@ public class HotUpdateHelper {
     
     /**
      * 设置是否强制要求补丁签名
-     * 
+     *
+     * 注意：默认值为 true。显式传入 false 会关闭补丁签名校验，
+     * 此时未签名或签名不匹配的补丁也会被应用，存在被投毒风险。
+     *
      * @param required 是否要求签名
      */
     public void setRequireSignature(boolean required) {
         securityPrefs.edit().putBoolean(KEY_REQUIRE_SIGNATURE, required).apply();
+        if (!required) {
+            // 显著告警：关闭签名校验会移除补丁来源与完整性保证
+            logE("⚠️ 安全警告：补丁签名校验已被关闭！"
+                    + "未签名或签名不匹配的补丁将被直接应用，存在补丁投毒风险。"
+                    + "生产环境请勿关闭。");
+            Log.e(TAG, "⚠️ SECURITY WARNING: patch signature verification has been DISABLED. "
+                    + "Unsigned or mismatched patches will be applied. Do not disable in production.");
+        }
     }
     
     /**
@@ -1401,7 +1441,7 @@ public class HotUpdateHelper {
      * @return 是否要求签名
      */
     public boolean isRequireSignature() {
-        return securityPrefs.getBoolean(KEY_REQUIRE_SIGNATURE, false);
+        return isSignatureRequired();
     }
     
     /**
@@ -1486,8 +1526,13 @@ public class HotUpdateHelper {
             String currentPackageName = context.getPackageName();
             
             if (patchPackageName == null || patchPackageName.isEmpty()) {
-                logW("⚠️ 补丁未包含包名信息（向后兼容旧版本补丁）");
-                // 向后兼容：旧版本补丁可能没有包名字段，允许继续
+                // 安全加固：包名缺失不再放行。
+                // packageName 是补丁作者可控字段，缺失时放行会让跨应用补丁投递的门槛降低。
+                // 旧版本补丁需用官方工具重新生成（工具会写入 packageName）。
+                return "⚠️ 补丁未包含包名信息，已拒绝应用！\n\n" +
+                       "当前应用: " + currentPackageName + "\n\n" +
+                       "为安全起见，缺少 packageName 的补丁不再被接受。\n" +
+                       "请使用官方补丁生成工具重新生成补丁。";
             } else if (!patchPackageName.equals(currentPackageName)) {
                 return "⚠️ 补丁包名不匹配！\n\n" +
                        "补丁包名: " + patchPackageName + "\n" +
@@ -1594,7 +1639,7 @@ public class HotUpdateHelper {
     private String checkSecurityPolicy(File patchFile) {
         ensureStorageInitialized();
         
-        boolean requireSignature = securityPrefs.getBoolean(KEY_REQUIRE_SIGNATURE, false);
+        boolean requireSignature = isSignatureRequired();
         boolean requireEncryption = securityPrefs.getBoolean(KEY_REQUIRE_ENCRYPTION, false);
         
         // 检查两种加密方式：AES 加密（.enc）或 ZIP 密码加密
@@ -1631,7 +1676,7 @@ public class HotUpdateHelper {
                 return "当前安全策略要求补丁必须签名！此补丁未签名，拒绝应用。";
             }
             
-            // APK 签名验证（如果补丁有签名）- 使用 apksig
+            // 补丁签名验证（如果补丁有签名）- 标准 JAR 签名 + 与应用签名比对
             if (hasSignature) {
                 logD("检测到补丁签名，开始验证 APK 签名...");
                 boolean signatureValid = patchSigner.verifyPatchSignatureMatchesApp(patchFile);
@@ -2078,7 +2123,7 @@ public class HotUpdateHelper {
                 logD("✓ AES 解密成功（使用自定义密码）");
                 
                 // 3. 解密后验证签名（如果要求签名）
-                boolean requireSignature = securityPrefs.getBoolean(KEY_REQUIRE_SIGNATURE, false);
+                boolean requireSignature = isSignatureRequired();
                 if (requireSignature) {
                     if (callback != null) {
                         callback.onProgress(15, "验证补丁签名...");
@@ -2246,7 +2291,7 @@ public class HotUpdateHelper {
             // 判断原始补丁是否是 ZIP 密码保护的
             boolean isZipPasswordProtected = isZipPasswordProtected(originalPatchFile);
             
-            // APK 签名验证（应用时再次验证）- 使用 apksig
+            // 补丁签名验证（应用时再次验证）- 标准 JAR 签名 + 与应用签名比对
             if (checkHasSignature(actualPatchFile)) {
                 if (callback != null) {
                     callback.onProgress(22, "验证 APK 签名...");

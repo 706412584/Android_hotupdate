@@ -2,7 +2,7 @@
 
 ## 发布的模�?
 
-�?v1.3.2 开始，发布脚本包含以下 **5 个模�?*�?
+�?v1.4.0 开始，发布脚本包含以下 **5 个模�?*�?
 
 1. **patch-core** - 核心补丁生成库（JAR�?
 2. **patch-native** - Native C++ 引擎（AAR，包�?SO 库）
@@ -30,7 +30,7 @@ patch-native �?Native C++ 引擎，包含高性能�?BsDiff 算法实现�?
 <dependency>
     <groupId>io.github.706412584</groupId>
     <artifactId>patch-native</artifactId>
-    <version>1.3.2</version>
+    <version>1.4.0</version>
     <type>aar</type>
 </dependency>
 ```
@@ -38,13 +38,13 @@ patch-native �?Native C++ 引擎，包含高性能�?BsDiff 算法实现�?
 ### Gradle 依赖
 
 ```gradle
-implementation 'io.github.706412584:patch-native:1.3.2'
+implementation 'io.github.706412584:patch-native:1.4.0'
 ```
 
 ### 下载链接
 
-- **AAR**: https://repo1.maven.org/maven2/io/github/706412584/patch-native/1.3.2/patch-native-1.3.2.aar
-- **POM**: https://repo1.maven.org/maven2/io/github/706412584/patch-native/1.3.2/patch-native-1.3.2.pom
+- **AAR**: https://repo1.maven.org/maven2/io/github/706412584/patch-native/1.4.0/patch-native-1.4.0.aar
+- **POM**: https://repo1.maven.org/maven2/io/github/706412584/patch-native/1.4.0/patch-native-1.4.0.pom
 
 ### 特�?
 
@@ -75,14 +75,14 @@ patch-cli 会发布两�?JAR 文件�?
 <dependency>
     <groupId>io.github.706412584</groupId>
     <artifactId>patch-cli</artifactId>
-    <version>1.3.2</version>
+    <version>1.4.0</version>
 </dependency>
 
 <!-- Fat JAR（推荐用于命令行�?-->
 <dependency>
     <groupId>io.github.706412584</groupId>
     <artifactId>patch-cli</artifactId>
-    <version>1.3.2</version>
+    <version>1.4.0</version>
     <classifier>all</classifier>
 </dependency>
 ```
@@ -91,17 +91,17 @@ patch-cli 会发布两�?JAR 文件�?
 
 ```gradle
 // 普�?JAR
-implementation 'io.github.706412584:patch-cli:1.3.2'
+implementation 'io.github.706412584:patch-cli:1.4.0'
 
 // Fat JAR（推荐用于命令行�?
-implementation 'io.github.706412584:patch-cli:1.3.2:all'
+implementation 'io.github.706412584:patch-cli:1.4.0:all'
 ```
 
 ### 下载链接
 
-- **Fat JAR**: https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.3.2/patch-cli-1.3.2-all.jar
-- **普�?JAR**: https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.3.2/patch-cli-1.3.2.jar
-- **POM**: https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.3.2/patch-cli-1.3.2.pom
+- **Fat JAR**: https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.4.0/patch-cli-1.4.0-all.jar
+- **普�?JAR**: https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.4.0/patch-cli-1.4.0.jar
+- **POM**: https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.4.0/patch-cli-1.4.0.pom
 
 ## 使用发布脚本
 
@@ -161,7 +161,7 @@ publish-maven.bat
 
 ```bash
 # 检�?patch-cli
-curl -I https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.3.2/patch-cli-1.3.2-all.jar
+curl -I https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.4.0/patch-cli-1.4.0-all.jar
 
 # 应该返回 200 OK
 ```
@@ -170,10 +170,10 @@ curl -I https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.3.2/patch
 
 ```bash
 # 下载 fat JAR
-wget https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.3.2/patch-cli-1.3.2-all.jar
+wget https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.4.0/patch-cli-1.4.0-all.jar
 
 # 测试运行
-java -jar patch-cli-1.3.2-all.jar --version
+java -jar patch-cli-1.4.0-all.jar --version
 
 # 应该输出版本信息
 ```

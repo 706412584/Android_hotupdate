@@ -7,26 +7,48 @@ echo Maven Central Publishing Tool
 echo ======================================
 echo.
 
-REM Read credentials from gradle.properties
-for /f "tokens=1,2 delims==" %%a in (..\gradle.properties) do (
-    if "%%a"=="ossrhUsername" set USERNAME=%%b
-    if "%%a"=="ossrhPassword" set PASSWORD=%%b
+REM 读取 OSSRH 凭证。仓库内的 gradle.properties 已不再存放任何凭证，
+REM 因此按优先级依次尝试：环境变量 -> 项目 gradle.properties -> 用户级 gradle.properties。
+REM 凭证值不会被回显。
+set "USERNAME="
+set "PASSWORD="
+
+REM 1) 环境变量
+if defined OSSRH_USERNAME set "USERNAME=%OSSRH_USERNAME%"
+if defined OSSRH_PASSWORD set "PASSWORD=%OSSRH_PASSWORD%"
+
+REM 2) 项目 gradle.properties
+if not defined USERNAME if exist "..\gradle.properties" (
+    for /f "tokens=1,2 delims==" %%a in ('findstr /B /C:"ossrhUsername=" "..\gradle.properties"') do set "USERNAME=%%b"
+)
+if not defined PASSWORD if exist "..\gradle.properties" (
+    for /f "tokens=1,2 delims==" %%a in ('findstr /B /C:"ossrhPassword=" "..\gradle.properties"') do set "PASSWORD=%%b"
+)
+
+REM 3) 用户级 gradle.properties
+if not defined USERNAME if exist "%USERPROFILE%\.gradle\gradle.properties" (
+    for /f "tokens=1,2 delims==" %%a in ('findstr /B /C:"ossrhUsername=" "%USERPROFILE%\.gradle\gradle.properties"') do set "USERNAME=%%b"
+)
+if not defined PASSWORD if exist "%USERPROFILE%\.gradle\gradle.properties" (
+    for /f "tokens=1,2 delims==" %%a in ('findstr /B /C:"ossrhPassword=" "%USERPROFILE%\.gradle\gradle.properties"') do set "PASSWORD=%%b"
 )
 
 if "%USERNAME%"=="" (
-    echo [ERROR] ossrhUsername not found
+    echo [ERROR] ossrhUsername not found. Set OSSRH_USERNAME, or put ossrhUsername
+    echo         in the project or user-level gradle.properties.
     pause
     exit /b 1
 )
 
 if "%PASSWORD%"=="" (
-    echo [ERROR] ossrhPassword not found
+    echo [ERROR] ossrhPassword not found. Set OSSRH_PASSWORD, or put ossrhPassword
+    echo         in the project or user-level gradle.properties.
     pause
     exit /b 1
 )
 
-REM Read version from maven-publish.gradle
-for /f "tokens=1,2 delims==" %%a in ('findstr /C:"pomVersion = " ..\maven-publish.gradle') do (
+REM Read version from build.gradle (pomVersion 的唯一真源)
+for /f "tokens=1,2 delims==" %%a in ('findstr /C:"pomVersion = " ..\build.gradle') do (
     set VERSION_LINE=%%b
 )
 REM Remove quotes and spaces
@@ -35,7 +57,7 @@ set VERSION=%VERSION: =%
 set VERSION=%VERSION:"=%
 
 if "%VERSION%"=="" (
-    echo [ERROR] Version not found in maven-publish.gradle
+    echo [ERROR] Version not found in build.gradle
     pause
     exit /b 1
 )
