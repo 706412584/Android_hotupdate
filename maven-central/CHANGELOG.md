@@ -1,5 +1,33 @@
 # Maven Central 发布记录
 
+## v1.5.1 (2026-10-12)
+
+### 修复（重要）
+
+- 🐛 **补丁 dex 连续编号**：修复补丁中的类全部无法加载的问题。
+  此前生成侧直接沿用 base APK 的 dex 条目名（如 `classes8.dex`、
+  `classes12.dex`），而 ART 只按 `classes.dex` → `classes2.dex` → …
+  连续查找，遇到跳号即停止，导致补丁 dex 中的类全部失效。
+  现在 `PatchGenerator` 会先按自然序排序 dex，再重编号为连续序列，
+  并保证同一对 APK 每次生成的映射一致。
+- 🐛 **确定性 dex 顺序**：`compareDex` 原使用 `HashSet`，遍历顺序不稳定，
+  导致补丁 dex 命名不可复现。改为按 dex 自然序排序。
+
+### 说明
+
+- 本次修复仅涉及 `patch-core`，三条产出路径（patch-cli / Gradle 插件 /
+  Android SDK）共用，均受益。
+- 若你此前生成过跳号的补丁包，需用本版本重新生成。
+
+### 发布的模块
+
+1. **update:1.5.1**
+2. **patch-core:1.5.1**
+3. **patch-native:1.5.1**
+4. **patch-generator-android:1.5.1**
+5. **patch-cli:1.5.1**
+6. **patch-gradle-plugin:1.5.1**
+
 ## v1.5.0 (2026-10-06)
 
 ### 安全修复（重要）
@@ -47,46 +75,46 @@
 
 ### 新增功能
 
-- �?**新增 HotUpdateHelper �?* - 提供简单易用的热更�?API
-  - 带回调接口（onProgress, onSuccess, onError�?
-  - 自动处理 PatchInfo 创建�?MD5 计算
-  - 支持异步和同步两种方�?
+- �?**新增 HotUpdateHelper �?* - 提供简单易用的热更�?API
+  - 带回调接口（onProgress, onSuccess, onError�?
+  - 自动处理 PatchInfo 创建�?MD5 计算
+  - 支持异步和同步两种方�?
   - 提供完整的补丁管理功能（应用、加载、清除、查询）
 
 ### 改进
 
-- 📝 更新�?README.md，推荐使�?HotUpdateHelper 作为首选方�?
-- 📝 更新�?MODULES.md，添加了 HotUpdateHelper 的详细说�?
-- 🔧 优化�?update 模块�?API 设计
+- 📝 更新�?README.md，推荐使�?HotUpdateHelper 作为首选方�?
+- 📝 更新�?MODULES.md，添加了 HotUpdateHelper 的详细说�?
+- 🔧 优化�?update 模块�?API 设计
 
-### 发布的模�?
+### 发布的模�?
 
 1. **patch-core:1.3.0** - 核心补丁算法
-2. **patch-generator-android:1.3.0** - Android 补丁生成�?
+2. **patch-generator-android:1.3.0** - Android 补丁生成�?
 3. **update:1.3.0** - 热更新核心库（推荐）
 
 ### 使用方法
 
 ```groovy
 dependencies {
-    // 热更新核心库（推�?- 包含完整功能�?
+    // 热更新核心库（推�?- 包含完整功能�?
     implementation 'io.github.706412584:update:1.3.0'
 }
 ```
 
 ### 升级指南
 
-�?v1.2.9 升级�?v1.3.0�?
+�?v1.2.9 升级�?v1.3.0�?
 
 1. 更新依赖版本号为 `1.3.0`
 2. （可选）使用新的 HotUpdateHelper API 简化代码：
 
 ```java
-// 旧方式（仍然支持�?
+// 旧方式（仍然支持�?
 PatchApplier patchApplier = new PatchApplier(context, new PatchStorage(context));
 patchApplier.apply(patchInfo);
 
-// 新方式（推荐�?
+// 新方式（推荐�?
 HotUpdateHelper helper = new HotUpdateHelper(context);
 helper.applyPatch(patchFile, new HotUpdateHelper.Callback() {
     @Override
@@ -96,7 +124,7 @@ helper.applyPatch(patchFile, new HotUpdateHelper.Callback() {
     
     @Override
     public void onSuccess(HotUpdateHelper.PatchResult result) {
-        // 热更新成�?
+        // 热更新成�?
     }
     
     @Override
@@ -112,46 +140,46 @@ helper.applyPatch(patchFile, new HotUpdateHelper.Callback() {
 
 ### 首次发布
 
-- �?成功发布 `patch-core:1.2.9` �?Maven Central
-- �?成功发布 `patch-generator-android:1.2.9` �?Maven Central
-- �?成功发布 `update:1.2.9` �?Maven Central（热更新核心库）
-- �?配置 GPG 签名（密�?ID: 94CEE4A6C60913C4�?
-- �?验证命名空间 `io.github.706412584`
-- �?上传公钥�?keys.openpgp.org �?keyserver.ubuntu.com
+- �?成功发布 `patch-core:1.2.9` �?Maven Central
+- �?成功发布 `patch-generator-android:1.2.9` �?Maven Central
+- �?成功发布 `update:1.2.9` �?Maven Central（热更新核心库）
+- �?配置 GPG 签名（密�?ID: 94CEE4A6C60913C4�?
+- �?验证命名空间 `io.github.706412584`
+- �?上传公钥�?keys.openpgp.org �?keyserver.ubuntu.com
 
-### 发布的模�?
+### 发布的模�?
 
 1. **patch-core** - 核心补丁算法
    - JAR 文件
    - Sources JAR
    - Javadoc JAR
-   - 所�?GPG 签名和校验和
+   - 所�?GPG 签名和校验和
 
-2. **patch-generator-android** - Android 补丁生成�?
+2. **patch-generator-android** - Android 补丁生成�?
    - AAR 文件
    - Sources JAR
    - Javadoc JAR
-   - 所�?GPG 签名和校验和
+   - 所�?GPG 签名和校验和
 
 3. **update** - 热更新核心库（推荐）
    - AAR 文件
    - Sources JAR
    - Javadoc JAR
-   - 所�?GPG 签名和校验和
+   - 所�?GPG 签名和校验和
    - 包含完整的热更新功能实现
 
 ### 问题解决
 
-1. **Bundle 路径问题** - 修复�?Bundle 创建时的路径错误
-2. **密钥不匹�?* - 发现并修复了配置密钥与实际使用密钥不一致的问题
-3. **公钥验证** - 上传正确的公钥到密钥服务�?
+1. **Bundle 路径问题** - 修复�?Bundle 创建时的路径错误
+2. **密钥不匹�?* - 发现并修复了配置密钥与实际使用密钥不一致的问题
+3. **公钥验证** - 上传正确的公钥到密钥服务�?
 
 ### 配置信息
 
 - Group ID: `io.github.706412584`
 - Artifacts: 
   - `patch-core` - 核心补丁算法
-  - `patch-generator-android` - Android 补丁生成�?
+  - `patch-generator-android` - Android 补丁生成�?
   - `update` - 热更新核心库（推荐）
 - Version: `1.2.9`
 - GPG Key: `94CEE4A6C60913C4`
@@ -161,7 +189,7 @@ helper.applyPatch(patchFile, new HotUpdateHelper.Callback() {
 
 ```groovy
 dependencies {
-    // 热更新核心库（推�?- 包含完整功能�?
+    // 热更新核心库（推�?- 包含完整功能�?
     implementation 'io.github.706412584:update:1.2.9'
 }
 ```
@@ -170,13 +198,13 @@ dependencies {
 
 ## 下次发布
 
-更新版本号后运行�?
+更新版本号后运行�?
 
 ```bash
 publish-maven.bat
 ```
 
-�?
+�?
 
 ```bash
 cd maven-central

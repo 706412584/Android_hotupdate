@@ -65,10 +65,10 @@
 ```groovy
 dependencies {
     // 热更新核心库
-    implementation 'io.github.706412584:update:1.4.0'
+    implementation 'io.github.706412584:update:1.5.1'
     
     // 如果需要在设备上生成补丁（可选，但不推荐，推荐直接使用官方demo的apk）：
-    implementation 'io.github.706412584:patch-generator-android:1.4.0'
+    implementation 'io.github.706412584:patch-generator-android:1.5.1'
     
 }
 ```
@@ -77,11 +77,11 @@ dependencies {
 
 | 组件 | Maven 坐标 | 说明 |
 |------|-----------|------|
-| **update** | `io.github.706412584:update:1.4.0` | 热更新核心库，必需 |
-| **patch-generator-android** | `io.github.706412584:patch-generator-android:1.4.0` | 设备端补丁生成 |
-| **patch-native** | `io.github.706412584:patch-native:1.4.0` | Native 高性能引擎（AAR） |
-| **patch-core** | `io.github.706412584:patch-core:1.4.0` | 核心补丁引擎 |
-| **patch-cli** | [下载 JAR](https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.4.0/patch-cli-1.4.0-all.jar) | 命令行工具（独立运行） |
+| **update** | `io.github.706412584:update:1.5.1` | 热更新核心库，必需 |
+| **patch-generator-android** | `io.github.706412584:patch-generator-android:1.5.1` | 设备端补丁生成 |
+| **patch-native** | `io.github.706412584:patch-native:1.5.1` | Native 高性能引擎（AAR） |
+| **patch-core** | `io.github.706412584:patch-core:1.5.1` | 核心补丁引擎 |
+| **patch-cli** | [下载 JAR](https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.5.1/patch-cli-1.5.1-all.jar) | 命令行工具（独立运行） |
 
 > 💡 **提示**：
 > - `update` 库已包含基本功能，大多数情况下只需要这一个依赖
@@ -94,10 +94,10 @@ dependencies {
 
 ```bash
 # 下载 patch-cli
-wget https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.4.0/patch-cli-1.4.0-all.jar
+wget https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.5.1/patch-cli-1.5.1-all.jar
 
 # 生成带签名的补丁
-java -jar patch-cli-1.4.0-all.jar \
+java -jar patch-cli-1.5.1-all.jar \
   --base app-v1.0.apk \
   --new app-v1.1.apk \
   --output patch.zip \
@@ -167,13 +167,13 @@ generator.generateInBackground()
 // 方式 A：通过 Gradle Plugin Portal（推荐）
 plugins {
     id 'com.android.application'
-    id 'io.github.706412584.patch' version '1.4.0'
+    id 'io.github.706412584.patch' version '1.5.1'
 }
 
 // 方式 B：通过 Maven Central
 buildscript {
     dependencies {
-        classpath 'io.github.706412584:patch-gradle-plugin:1.4.0'
+        classpath 'io.github.706412584:patch-gradle-plugin:1.5.1'
     }
 }
 apply plugin: 'io.github.706412584.patch'
@@ -566,7 +566,7 @@ if (intent != null) {
 | **update** | 热更新 SDK，补丁应用和加载，包含 `SecurityManager` 用于解密补丁 | - |
 | **patch-core** | 核心引擎，APK 解析、差异比较 | [README](patch-core/README.md) |
 | **patch-native** | Native SO 库，BsDiff 算法 | [README](patch-native/README.md) |
-| **patch-cli** | 命令行工具，独立运行，[可直接下载](https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.4.0/patch-cli-1.4.0-all.jar) | [README](patch-cli/README.md) |
+| **patch-cli** | 命令行工具，独立运行，[可直接下载](https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.5.1/patch-cli-1.5.1-all.jar) | [README](patch-cli/README.md) |
 | **patch-gradle-plugin** | Gradle 插件，构建集成，[已发布到 Maven Central 和 Plugin Portal](https://plugins.gradle.org/plugin/io.github.706412584.patch) | [README](patch-gradle-plugin/README.md) \| [发布指南](patch-gradle-plugin/PUBLISH_GUIDE.md) |
 | **patch-server** | 🆕 补丁管理服务端，Web 管理后台 + RESTful API | [README](patch-server/README.md) |
 

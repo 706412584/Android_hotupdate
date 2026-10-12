@@ -89,10 +89,10 @@ We provide a free patch hosting service for testing and learning:
 ```groovy
 dependencies {
     // Hot update core library
-    implementation 'io.github.706412584:update:1.4.0'
+    implementation 'io.github.706412584:update:1.5.1'
     
     // If you need to generate patches on device (optional, not recommended, use official demo APK instead):
-    implementation 'io.github.706412584:patch-generator-android:1.4.0'
+    implementation 'io.github.706412584:patch-generator-android:1.5.1'
     
 }
 ```
@@ -101,12 +101,12 @@ dependencies {
 
 | Component | Maven Coordinates | Description |
 |-----------|------------------|-------------|
-| **update** | `io.github.706412584:update:1.4.0` | Hot update core library, required |
-| **patch-generator-android** | `io.github.706412584:patch-generator-android:1.4.0` | On-device patch generation |
-| **patch-native** | `io.github.706412584:patch-native:1.4.0` | Native high-performance engine (AAR) |
-| **patch-core** | `io.github.706412584:patch-core:1.4.0` | Core patch engine |
-| **patch-cli** | [Download JAR](https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.4.0/patch-cli-1.4.0-all.jar) | Command-line tool (standalone) |
-| **patch-gradle-plugin** | `io.github.706412584:patch-gradle-plugin:1.4.0` | Gradle plugin for build integration |
+| **update** | `io.github.706412584:update:1.5.1` | Hot update core library, required |
+| **patch-generator-android** | `io.github.706412584:patch-generator-android:1.5.1` | On-device patch generation |
+| **patch-native** | `io.github.706412584:patch-native:1.5.1` | Native high-performance engine (AAR) |
+| **patch-core** | `io.github.706412584:patch-core:1.5.1` | Core patch engine |
+| **patch-cli** | [Download JAR](https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.5.1/patch-cli-1.5.1-all.jar) | Command-line tool (standalone) |
+| **patch-gradle-plugin** | `io.github.706412584:patch-gradle-plugin:1.5.1` | Gradle plugin for build integration |
 
 > ?? **Tips**:
 > - The `update` library includes basic functionality, most cases only need this dependency
@@ -119,10 +119,10 @@ dependencies {
 
 ```bash
 # Download patch-cli
-wget https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.4.0/patch-cli-1.4.0-all.jar
+wget https://repo1.maven.org/maven2/io/github/706412584/patch-cli/1.5.1/patch-cli-1.5.1-all.jar
 
 # Generate signed patch
-java -jar patch-cli-1.4.0-all.jar \
+java -jar patch-cli-1.5.1-all.jar \
   --base app-v1.0.apk \
   --new app-v1.1.apk \
   --output patch.zip \
@@ -192,13 +192,13 @@ generator.generate()
 // Method A: Via Gradle Plugin Portal (Recommended)
 plugins {
     id 'com.android.application'
-    id 'io.github.706412584.patch' version '1.4.0'
+    id 'io.github.706412584.patch' version '1.5.1'
 }
 
 // Method B: Via Maven Central
 buildscript {
     dependencies {
-        classpath 'io.github.706412584:patch-gradle-plugin:1.4.0'
+        classpath 'io.github.706412584:patch-gradle-plugin:1.5.1'
     }
 }
 apply plugin: 'io.github.706412584.patch'
