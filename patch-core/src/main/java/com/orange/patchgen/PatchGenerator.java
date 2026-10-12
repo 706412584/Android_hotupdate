@@ -31,12 +31,15 @@ import org.apache.commons.io.FileUtils;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * 补丁生成器主类
@@ -60,6 +63,32 @@ public class PatchGenerator {
     private final AtomicBoolean cancelled = new AtomicBoolean(false);
     private ExecutorService executor;
     private Future<?> currentTask;
+
+    /** 匹配 classes.dex / classes2.dex / classes12.dex */
+    private static final Pattern DEX_NAME_PATTERN = Pattern.compile("classes(\\d*)\\.dex");
+
+    /**
+     * dex 文件名的自然顺序：classes.dex < classes2.dex < classes3.dex < ...
+     * 注意不能按字符串比较，否则 classes10.dex 会排在 classes2.dex 前面。
+     */
+    static final Comparator<String> DEX_NAME_ORDER = (a, b) -> {
+        Matcher ma = DEX_NAME_PATTERN.matcher(a);
+        Matcher mb = DEX_NAME_PATTERN.matcher(b);
+        boolean okA = ma.matches();
+        boolean okB = mb.matches();
+        if (okA && okB) {
+            // classes.dex 无数字，等价于序号 1
+            int na = ma.group(1).isEmpty() ? 1 : Integer.parseInt(ma.group(1));
+            int nb = mb.group(1).isEmpty() ? 1 : Integer.parseInt(mb.group(1));
+            if (na != nb) {
+                return Integer.compare(na, nb);
+            }
+        } else if (okA != okB) {
+            // 能识别的排前面
+            return okA ? -1 : 1;
+        }
+        return a.compareTo(b);
+    };
 
     private PatchGenerator(Builder builder) {
         this.baseApk = builder.baseApk;
@@ -542,18 +571,31 @@ public class PatchGenerator {
 
     /**
      * 生成补丁 Dex 文件
+     *
+     * 重要：补丁 zip 内的 dex 条目名必须从 classes.dex 开始连续编号
+     * (classes.dex, classes2.dex, classes3.dex, ...)，不能出现跳号。
+     * ART 只会按 classes.dex -> classes2.dex -> ... 的顺序连续查找，
+     * 一旦遇到缺口（例如只有 classes8.dex、classes12.dex）就会停止，
+     * 导致补丁中的类全部无法加载。
+     *
+     * 因此这里在生成/复制出补丁 dex 后，按原始 dex 的确定性顺序
+     * 重新编号为连续序列。同时保证同一对 APK 每次生成的映射一致。
      */
-    private List<File> generatePatchDexFiles(List<DexDiffResult> dexDiffs, 
-                                              File newExtractDir, 
+    private List<File> generatePatchDexFiles(List<DexDiffResult> dexDiffs,
+                                              File newExtractDir,
                                               File outputDir) throws DexDiffException {
         List<File> patchDexFiles = new ArrayList<>();
         DexDiffer dexDiffer = new DexDiffer();
-        
-        for (DexDiffResult diff : dexDiffs) {
+
+        // 按原始 dex 名排序，保证生成顺序确定（HashSet 顺序不稳定）
+        List<DexDiffResult> sortedDiffs = new ArrayList<>(dexDiffs);
+        sortedDiffs.sort(Comparator.comparing(DexDiffResult::getDexName, DEX_NAME_ORDER));
+
+        for (DexDiffResult diff : sortedDiffs) {
             if (!diff.hasChanges()) {
                 continue;
             }
-            
+
             // 如果是整个 dex 新增，直接复制
             if (diff.getAddedClasses() != null && diff.getAddedClasses().contains("*")) {
                 File newDex = new File(newExtractDir, diff.getDexName());
@@ -569,12 +611,12 @@ public class PatchGenerator {
                 }
                 continue;
             }
-            
+
             // 如果是整个 dex 删除，跳过（删除信息记录在 metadata 中）
             if (diff.getDeletedClasses() != null && diff.getDeletedClasses().contains("*")) {
                 continue;
             }
-            
+
             // 生成包含修改和新增类的补丁 dex
             File newDex = new File(newExtractDir, diff.getDexName());
             if (newDex.exists()) {
@@ -584,8 +626,52 @@ public class PatchGenerator {
                 }
             }
         }
-        
-        return patchDexFiles;
+
+        // 关键：重命名为连续的 classes.dex / classes2.dex / ...
+        return renumberPatchDexFiles(patchDexFiles);
+    }
+
+    /**
+     * 将补丁 dex 重命名为连续的 classes.dex, classes2.dex, ...
+     *
+     * @param patchDexFiles 已生成的补丁 dex 文件（顺序需已确定）
+     * @return 重命名后的文件列表
+     * @throws DexDiffException 重命名失败时抛出
+     */
+    static List<File> renumberPatchDexFiles(List<File> patchDexFiles) throws DexDiffException {
+        List<File> renumbered = new ArrayList<>();
+
+        for (int i = 0; i < patchDexFiles.size(); i++) {
+            File source = patchDexFiles.get(i);
+            String targetName = (i == 0) ? "classes.dex" : "classes" + (i + 1) + ".dex";
+
+            if (source.getName().equals(targetName)) {
+                renumbered.add(source);
+                continue;
+            }
+
+            File target = new File(source.getParentFile(), targetName);
+            // 先删除可能存在的旧文件，避免重命名失败
+            if (target.exists() && !target.equals(source)) {
+                target.delete();
+            }
+
+            if (!source.renameTo(target)) {
+                // renameTo 在某些平台上跨卷失败，回退到复制
+                try {
+                    FileUtils.copyFile(source, target);
+                    source.delete();
+                } catch (IOException e) {
+                    throw new DexDiffException("Failed to renumber patch dex: " + source.getName()
+                            + " -> " + targetName + ": " + e.getMessage(),
+                            GeneratorErrorCode.ERROR_FILE_WRITE_FAILED, e);
+                }
+            }
+
+            renumbered.add(target);
+        }
+
+        return renumbered;
     }
 
     /**
