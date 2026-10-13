@@ -167,7 +167,13 @@ public class DexDiffer {
 
         try {
             // 解析新版本 dex 文件
-            DexFile newDex = DexFileFactory.loadDexFile(newDexFile, Opcodes.getDefault());
+            //
+            // 必须用 Opcodes.forDexVersion(38)，不能用 Opcodes.getDefault()：
+            // getDefault() 是 API 15 的指令表，会把 API 26+ 的 INVOKE_POLYMORPHIC
+            // （以及 INVOKE_CUSTOM 等）误解码为长度不同的旧指令，导致指令流错位，
+            // 在方法末尾抛 "The last instruction ... is truncated"。
+            // ACS（Kotlin 2.1 产物）的 dex 版本是 038，含该类指令，实测必现。
+            DexFile newDex = DexFileFactory.loadDexFile(newDexFile, Opcodes.forDexVersion(38));
 
             // 扩展类列表，包含内部类和 Lambda 类
             Set<String> expandedClasses = expandClassesWithInnerAndLambda(classesToInclude, newDex);
@@ -271,7 +277,9 @@ public class DexDiffer {
     private Map<String, String> parseDexClasses(File dexFile) throws IOException {
         Map<String, String> classHashes = new HashMap<>();
 
-        DexFile dex = DexFileFactory.loadDexFile(dexFile, Opcodes.getDefault());
+        // 见 generatePatchDex 处的说明：必须 forDexVersion(38)，getDefault() 会误解码
+        // API 26+ 指令（INVOKE_POLYMORPHIC 等）导致 truncated 异常。
+        DexFile dex = DexFileFactory.loadDexFile(dexFile, Opcodes.forDexVersion(38));
 
         for (ClassDef classDef : dex.getClasses()) {
             String className = convertDexTypeToClassName(classDef.getType());
@@ -499,27 +507,53 @@ public class DexDiffer {
 
     /**
      * 写入补丁 dex 文件
+     *
+     * <p><b>不能直接用 {@code DexPool.writeTo}（静态方法）</b>：它的 internClass 只
+     * 收集每条指令的 {@code getReference()}，而 INVOKE_POLYMORPHIC 是双引用指令
+     * （{@code DualReferenceInstruction}），第二个引用是方法原型（proto），
+     * 该 proto 不会被 intern；写入时 {@code InstructionWriter.getReferenceIndex}
+     * 在 proto pool 里找不到它，抛
+     * {@code Item not found.: (Ljava/util/ResourceBundle;)V}。
+     *
+     * <p>ACS 的 Kotlin 2.1 产物含 {@code INVOKE_POLYMORPHIC}（如
+     * {@code DynamicBundle.setBundleParent} 调用
+     * {@code MethodHandle.invokeExact}），实测必现。修复：手动构造 DexPool，
+     * internClass 后把每个方法的 DualReferenceInstruction 第二引用补进 protoSection，
+     * 再写盘。
      */
     private void writePatchDex(List<ClassDef> classes, File outputFile, Opcodes opcodes) throws IOException {
-        // 使用 dexlib2 的 DexFileFactory 写入 dex 文件
-        org.jf.dexlib2.writer.io.FileDataStore dataStore = 
+        org.jf.dexlib2.writer.io.FileDataStore dataStore =
             new org.jf.dexlib2.writer.io.FileDataStore(outputFile);
-        
-        // 创建一个包含指定类的 DexFile
-        DexFile patchDex = new DexFile() {
-            @Override
-            public Set<? extends ClassDef> getClasses() {
-                return new LinkedHashSet<>(classes);
-            }
 
-            @Override
-            public Opcodes getOpcodes() {
-                return opcodes;
-            }
-        };
+        org.jf.dexlib2.writer.pool.DexPool pool =
+            new org.jf.dexlib2.writer.pool.DexPool(opcodes);
+        for (ClassDef classDef : classes) {
+            pool.internClass(classDef);
+        }
 
-        // 写入 dex 文件
-        org.jf.dexlib2.writer.pool.DexPool.writeTo(dataStore, patchDex);
+        // 补 intern 双引用指令的第二引用（INVOKE_POLYMORPHIC 的 proto）。
+        // 见方法注释：dexlib2 2.5.2 的 internClass 不处理它。
+        for (ClassDef classDef : classes) {
+            for (Method method : classDef.getMethods()) {
+                MethodImplementation impl = method.getImplementation();
+                if (impl == null) {
+                    continue;
+                }
+                for (Instruction instruction : impl.getInstructions()) {
+                    if (instruction instanceof org.jf.dexlib2.iface.instruction.DualReferenceInstruction) {
+                        org.jf.dexlib2.iface.instruction.DualReferenceInstruction dual =
+                            (org.jf.dexlib2.iface.instruction.DualReferenceInstruction) instruction;
+                        org.jf.dexlib2.iface.reference.Reference ref2 = dual.getReference2();
+                        if (ref2 instanceof org.jf.dexlib2.iface.reference.MethodProtoReference) {
+                            pool.protoSection.intern(
+                                (org.jf.dexlib2.iface.reference.MethodProtoReference) ref2);
+                        }
+                    }
+                }
+            }
+        }
+
+        pool.writeTo(dataStore);
     }
 
     /**

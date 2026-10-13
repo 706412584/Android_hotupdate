@@ -219,8 +219,9 @@ public class ApkParser {
                     zipFile.extractFile(dexHeader, tempDir.getAbsolutePath());
                     File dexFile = new File(tempDir, dexFileName);
                     
-                    // 使用 dexlib2 解析 dex 文件
-                    org.jf.dexlib2.iface.DexFile parsedDex = DexFileFactory.loadDexFile(dexFile, Opcodes.getDefault());
+                    // 使用 dexlib2 解析 dex 文件。必须 forDexVersion(38)：getDefault()
+                    // 是 API 15 指令表，误解码 API 26+ 指令导致 truncated（见 DexDiffer）。
+                    org.jf.dexlib2.iface.DexFile parsedDex = DexFileFactory.loadDexFile(dexFile, Opcodes.forDexVersion(38));
                     
                     for (ClassDef classDef : parsedDex.getClasses()) {
                         String className = classDef.getType();
