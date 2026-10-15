@@ -161,4 +161,59 @@ public class ResourceDiffResultTest {
 
         assertThat(target.hasChanges()).isTrue();
     }
+
+    // ---- removeIf（排除不参与差异的路径）----
+
+    @Test
+    public void removeIf_dropsMatchingEntriesAndKeepsOthers() {
+        ResourceDiffResult result = new ResourceDiffResult();
+        result.addModifiedFile(
+                FileChange.modified("data/common/tooling-api-all.jar", "a", "b", 1L, 2L));
+        result.addAddedFile(FileChange.added("data/common/gradle-wrapper.zip", "m", 2L));
+        result.addDeletedFile("data/common/old.jar");
+
+        result.removeIf(path -> path.contains("tooling-api-all.jar"));
+
+        assertThat(result.getModifiedFiles()).isEmpty();
+        assertThat(result.getAddedFiles()).hasSize(1);
+        assertThat(result.getDeletedFiles()).hasSize(1);
+        assertThat(result.hasChanges()).isTrue();
+    }
+
+    @Test
+    public void removeIf_allEntriesRemoved_clearsHasChanges() {
+        ResourceDiffResult result = new ResourceDiffResult();
+        result.addModifiedFile(
+                FileChange.modified("data/common/tooling-api-all.jar", "a", "b", 1L, 2L));
+
+        result.removeIf(path -> path.contains("tooling-api-all.jar"));
+
+        // 关键：全部被排除后必须回到「无变化」——否则补丁会为一次纯噪音差异
+        // 而生成（实测 tooling-api-all.jar 内嵌版本号，每次构建都变）。
+        assertThat(result.hasChanges()).isFalse();
+        assertThat(result.getTotalChanges()).isZero();
+    }
+
+    @Test
+    public void removeIf_nullPredicateIsNoOp() {
+        ResourceDiffResult result = new ResourceDiffResult();
+        result.addModifiedFile(FileChange.modified("res/a.xml", "a", "b", 1L, 2L));
+
+        result.removeIf(null);
+
+        assertThat(result.hasChanges()).isTrue();
+        assertThat(result.getModifiedFiles()).hasSize(1);
+    }
+
+    @Test
+    public void removeIf_handlesNullListsGracefully() {
+        ResourceDiffResult result = new ResourceDiffResult();
+        result.setModifiedFiles(null);
+        result.setAddedFiles(null);
+        result.setDeletedFiles(null);
+
+        result.removeIf(path -> true);
+
+        assertThat(result.hasChanges()).isFalse();
+    }
 }

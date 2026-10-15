@@ -67,6 +67,45 @@ public class GeneratorConfigTest {
                 .containsExactly(EngineType.AUTO, EngineType.JAVA, EngineType.NATIVE);
     }
 
+    // ---- excludedPaths（排除每次构建都会变的噪音资产）----
+
+    @Test
+    public void excludedPaths_defaultsToEmpty() {
+        assertThat(GeneratorConfig.builder().build().getExcludedPaths()).isEmpty();
+        assertThat(GeneratorConfig.builder().excludedPaths(null).build().getExcludedPaths())
+                .isEmpty();
+    }
+
+    @Test
+    public void isExcluded_matchesExactPathAndDirectoryPrefix() {
+        GeneratorConfig config =
+                GeneratorConfig.builder()
+                        .excludedPaths(java.util.Arrays.asList(
+                                "assets/data/common/tooling-api-all.jar",
+                                "assets/dexopt"))
+                        .build();
+
+        assertThat(config.isExcluded("assets/data/common/tooling-api-all.jar")).isTrue();
+        // 目录前缀：配置 assets/dexopt 应排除其下所有文件
+        assertThat(config.isExcluded("assets/dexopt/baseline.prof")).isTrue();
+        assertThat(config.isExcluded("assets/dexopt/baseline.profm")).isTrue();
+
+        assertThat(config.isExcluded("assets/data/common/gradle-wrapper.zip")).isFalse();
+        // 前缀必须落在路径分隔符上：assets/dexoptX 不算 assets/dexopt 的子项
+        assertThat(config.isExcluded("assets/dexoptX/file")).isFalse();
+        assertThat(config.isExcluded(null)).isFalse();
+    }
+
+    @Test
+    public void isExcluded_normalizesBackslashes() {
+        GeneratorConfig config =
+                GeneratorConfig.builder()
+                        .excludedPaths(java.util.Collections.singletonList("assets/foo/bar.jar"))
+                        .build();
+
+        assertThat(config.isExcluded("assets\\foo\\bar.jar")).isTrue();
+    }
+
     @Test
     public void patchMode_hasExpectedConstants() {
         assertThat(PatchMode.values())

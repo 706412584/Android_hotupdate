@@ -19,7 +19,9 @@ import org.apache.commons.cli.ParseException;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 /**
  * 补丁生成器命令行工具
@@ -74,10 +76,16 @@ public class PatchGeneratorCli {
             
             // Parse patch mode
             PatchMode patchMode = parsePatchMode(cmd.getOptionValue("mode", "full_dex"));
-            
+
+            // Parse excluded paths (comma-separated)
+            List<String> excludedPaths = parseExcludedPaths(cmd.getOptionValue("exclude", ""));
+
             // Print start message
             printStartMessage(baseApk, newApk, output, engineType, patchMode);
-            
+            if (!excludedPaths.isEmpty()) {
+                System.out.println("Excluded paths: " + excludedPaths);
+            }
+
             // Build generator
             PatchGenerator generator = new PatchGenerator.Builder()
                     .baseApk(baseApk)
@@ -86,6 +94,9 @@ public class PatchGeneratorCli {
                     .signingConfig(signingConfig)
                     .engineType(engineType)
                     .patchMode(patchMode)
+                    .config(com.orange.patchgen.config.GeneratorConfig.builder()
+                            .excludedPaths(excludedPaths)
+                            .build())
                     .callback(new ConsoleCallback())
                     .build();
             
@@ -189,7 +200,18 @@ public class PatchGeneratorCli {
                 .hasArg()
                 .argName("MODE")
                 .build());
-        
+
+        // 排除不参与差异比较的路径（逗号分隔，APK 根相对路径）。
+        // 用途：某些 assets 是每次构建都会变的产物（内嵌版本号/时间戳），
+        // 体积大但对用户无意义——不排除会让补丁从约 1MB 膨胀到 17MB。
+        options.addOption(Option.builder()
+                .longOpt("exclude")
+                .desc("Comma-separated paths (relative to APK root) excluded from diff, "
+                        + "e.g. assets/data/common/tooling-api-all.jar")
+                .hasArg()
+                .argName("PATHS")
+                .build());
+
         // Other options
         options.addOption(Option.builder("v")
                 .longOpt("verbose")
@@ -297,6 +319,25 @@ public class PatchGeneratorCli {
             default:
                 throw new ParseException("Invalid patch mode: " + value + ". Valid values: full_dex, bsdiff");
         }
+    }
+
+    /**
+     * 解析 --exclude 的逗号分隔路径列表。
+     *
+     * <p>空白项被丢弃（容忍尾随逗号与多余空格），返回不可变列表。
+     */
+    private static List<String> parseExcludedPaths(String value) {
+        List<String> result = new ArrayList<>();
+        if (value == null || value.trim().isEmpty()) {
+            return result;
+        }
+        for (String part : value.split(",")) {
+            String trimmed = part.trim();
+            if (!trimmed.isEmpty()) {
+                result.add(trimmed);
+            }
+        }
+        return result;
     }
 
     /**

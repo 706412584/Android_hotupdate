@@ -490,23 +490,30 @@ public class PatchGenerator {
     /**
      * 比较资源差异
      */
-    private ResourceDiffResult compareResources(File baseExtractDir, File newExtractDir) 
+    private ResourceDiffResult compareResources(File baseExtractDir, File newExtractDir)
             throws ResourceDiffException {
         ResourceDiffer resourceDiffer = new ResourceDiffer();
         File baseResDir = new File(baseExtractDir, "res");
         File newResDir = new File(newExtractDir, "res");
-        return resourceDiffer.compare(baseResDir, newResDir);
+        ResourceDiffResult result = resourceDiffer.compare(baseResDir, newResDir);
+        // 排除配置的路径（见 GeneratorConfig.getExcludedPaths）。资源差异里的路径
+        // 是相对 res/ 的，这里补上前缀以匹配「APK 根相对路径」的配置写法。
+        result.removeIf(path -> config.isExcluded("res/" + path));
+        return result;
     }
 
     /**
      * 比较 Assets 差异
      */
-    private ResourceDiffResult compareAssets(File baseExtractDir, File newExtractDir) 
+    private ResourceDiffResult compareAssets(File baseExtractDir, File newExtractDir)
             throws ResourceDiffException {
         ResourceDiffer resourceDiffer = new ResourceDiffer();
         File baseAssetsDir = new File(baseExtractDir, "assets");
         File newAssetsDir = new File(newExtractDir, "assets");
-        return resourceDiffer.compareAssets(baseAssetsDir, newAssetsDir);
+        ResourceDiffResult result = resourceDiffer.compareAssets(baseAssetsDir, newAssetsDir);
+        // 同上：assets 差异路径相对 assets/，补前缀后按 APK 根相对路径匹配。
+        result.removeIf(path -> config.isExcluded("assets/" + path));
+        return result;
     }
 
     /**

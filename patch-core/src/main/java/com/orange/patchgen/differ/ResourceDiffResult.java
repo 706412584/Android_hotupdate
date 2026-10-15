@@ -82,6 +82,32 @@ public class ResourceDiffResult {
         this.hasChanges = hasChanges;
     }
 
+    /**
+     * 移除所有满足 {@code exclude} 的条目，并重算 {@link #hasChanges()}。
+     *
+     * <p><b>为什么在结果层过滤而不是在扫描层</b>：排除是「哪些差异不该进补丁」的
+     * 决策，与「目录里有什么」无关。在这里过滤一次，{@code hasChanges()} 判定、
+     * {@code copyChangedResources} 复制、以及 {@code PatchInfo.changes} 统计三处
+     * **同时**生效；若分散到三处各自判断，任何一处漏掉都会让被排除的文件重新混进补丁。
+     *
+     * @param exclude 接收「相对路径」，返回 true 表示排除
+     */
+    public void removeIf(java.util.function.Predicate<String> exclude) {
+        if (exclude == null) {
+            return;
+        }
+        if (modifiedFiles != null) {
+            modifiedFiles.removeIf(c -> c != null && exclude.test(c.getRelativePath()));
+        }
+        if (addedFiles != null) {
+            addedFiles.removeIf(c -> c != null && exclude.test(c.getRelativePath()));
+        }
+        if (deletedFiles != null) {
+            deletedFiles.removeIf(p -> p != null && exclude.test(p));
+        }
+        updateHasChanges();
+    }
+
     private void updateHasChanges() {
         this.hasChanges = (modifiedFiles != null && !modifiedFiles.isEmpty()) ||
                           (addedFiles != null && !addedFiles.isEmpty()) ||
