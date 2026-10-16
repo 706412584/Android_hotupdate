@@ -1,5 +1,52 @@
 # Maven Central 发布记录
 
+## v1.5.3 (2026-10-16)
+
+### 新增（资源热更新的安全网）
+
+- ✨ **资源 ID 稳定性检测**（生成侧）：补丁整体替换 `resources.arsc`，而资源 ID
+  被内联进 dex 与二进制 XML。新版增删资源导致既有 ID 重排时，未被差分 dex
+  覆盖的旧代码会**静默**引用错误资源（实测 ACS r11→r12：10308 个共有资源里
+  981 个漂移，表现为界面显示无关文字、无任何报错）。
+  现在 `PatchGenerator` 在生成含资源的补丁时自动比对 base/new 的资源映射，
+  判定结果写入 `patch.json` 的 `resourceIdsStable` 字段——对齐写 `true`，
+  漂移/删除/解析失败写 `false`（失败按不稳定处理，偏保守）。
+  消费侧据此拒绝未对齐的资源补丁。
+  - `ArscParser`：纯 JVM 解析 `resources.arsc`（UTF-8/UTF-16 字符串池、
+    u32/OFFSET16/SPARSE 三种条目编码），经 aapt2 真实产物（含 `--stable-ids`
+    与 `--enable-compact-entries`）及真实 APK 对验证。
+- ✨ **R 字段内联告警**（`RFieldAnalyzer`）：dex 层检测 R 类静态 int 字段的
+  `ACC_FINAL`——带 final 即资源 ID 被编译期内联（旧版 AGP 或
+  `android.nonFinalResIds=false`），是漂移的放大器。检测结果写入 `patch.json`
+  的 `rFieldsFinal`，CLI 与 Gradle 插件输出明确告警与修复指引。
+- 📄 文档：`docs/RESOURCE_ID_STABILITY.md`（原理、检测、修复路径）。
+
+### 兼容性说明
+
+- `PatchInfo` 新增 `resourceIdsStable` / `rFieldsFinal` 两个**可选**字段，
+  向后兼容：旧消费侧读不到字段时行为不变（缺失安全）。
+
+### 发布的模块
+
+1. **update:1.5.3**
+2. **patch-core:1.5.3**
+3. **patch-native:1.5.3**
+4. **patch-generator-android:1.5.3**
+5. **patch-cli:1.5.3**
+6. **patch-gradle-plugin:1.5.3**
+
+> 注：1.5.2 仅 patch-core / patch-cli 上架（其余 4 个模块当时未随 bundle 提交），
+> 本版本一并补齐全部 6 个模块。
+
+## v1.5.2 (2026-10-13)
+
+### 修复
+
+- 🐛 **dex 版本 038 解析/写入**（`patch-core`）：支持 `INVOKE_POLYMORPHIC` 的
+  解析与写入，兼容 Android 14+ 的 dex 038 产物。
+- 🐛 **`--exclude` 排除噪音资产**：补丁生成时可排除每次构建都变的资产
+  （如内嵌版本号的 jar），实测 ACS r11→r12 补丁从 20.5MB 降到 4.37MB。
+
 ## v1.5.1 (2026-10-12)
 
 ### 修复（重要）
