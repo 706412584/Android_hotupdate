@@ -446,6 +446,22 @@ public class PatchGeneratorCli {
             System.out.println("  Mode:        " + patchInfo.getPatchMode());
             System.out.println("  MD5:         " + patchInfo.getMd5());
             System.out.println("  Created:     " + formatTime(patchInfo.getCreateTime()));
+
+            // 资源稳定性：含资源的补丁在消费侧必须带 resourceIdsStable=true 才放行
+            if (patchInfo.getResourceIdsStable() != null) {
+                boolean stable = patchInfo.getResourceIdsStable();
+                System.out.println("  Res IDs:     " + (stable
+                        ? "stable（resourceIdsStable=true，含资源补丁可被放行）"
+                        : "UNSTABLE（resourceIdsStable=false，含资源补丁会被消费侧拒绝！）"));
+                if (!stable) {
+                    System.out.println("  提示: 资源 ID 在版本间发生了重排，热更新会导致界面文字错乱。");
+                    System.out.println("        解决方案见 docs/RESOURCE_ID_STABILITY.md"
+                            + "（aapt2 --stable-ids 固定 ID，或改用完整 APK 更新）");
+                }
+            }
+            if (Boolean.TRUE.equals(patchInfo.getRFieldsFinal())) {
+                System.out.println("  R fields:    final（资源 ID 已内联进 dex，漂移风险放大）");
+            }
             System.out.println();
         }
         

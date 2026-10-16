@@ -108,12 +108,14 @@ public abstract class GeneratePatchTask extends DefaultTask {
     @TaskAction
     public void generatePatch() {
         Logger logger = getLogger();
-        
+
         // 检查是否启用
         if (!getPatchEnabled().getOrElse(true)) {
             logger.lifecycle("Patch generation is disabled");
             return;
         }
+
+        warnIfResIdsAreFinal(logger);
 
         // 获取输入文件
         File baseApk = getBaselineApk().getAsFile().get();
@@ -176,12 +178,24 @@ public abstract class GeneratePatchTask extends DefaultTask {
                     logger.lifecycle("  Patch file: {}", result.getPatchFile().getAbsolutePath());
                     logger.lifecycle("  Patch size: {} bytes", result.getPatchSize());
                     logger.lifecycle("  Generation time: {} ms", result.getGenerateTime());
-                    
+
                     if (result.getDiffSummary() != null) {
                         logger.lifecycle("  Modified classes: {}", result.getDiffSummary().getModifiedClasses());
                         logger.lifecycle("  Added classes: {}", result.getDiffSummary().getAddedClasses());
                         logger.lifecycle("  Deleted classes: {}", result.getDiffSummary().getDeletedClasses());
                         logger.lifecycle("  Modified resources: {}", result.getDiffSummary().getModifiedResources());
+                    }
+
+                    // 资源稳定性：含资源的补丁在消费侧必须带 resourceIdsStable=true 才放行
+                    if (result.getPatchInfo() != null
+                            && result.getPatchInfo().getResourceIdsStable() != null) {
+                        if (result.getPatchInfo().getResourceIdsStable()) {
+                            logger.lifecycle("  Resource IDs: stable (resourceIdsStable=true)");
+                        } else {
+                            logger.warn("Resource IDs are NOT stable (resourceIdsStable=false) — "
+                                    + "consumer apps will reject this patch if it contains resources. "
+                                    + "See docs/RESOURCE_ID_STABILITY.md");
+                        }
                     }
                 } else {
                     logger.lifecycle("No patch needed - APKs are identical");
@@ -193,6 +207,92 @@ public abstract class GeneratePatchTask extends DefaultTask {
         } catch (PatchGenerator.PatchGeneratorException e) {
             logger.error("Patch generation failed: {}", e.getMessage());
             throw new RuntimeException("Patch generation failed", e);
+        }
+    }
+
+    /**
+     * 构建期提示：R 字段是否为 final（资源 ID 内联风险）。
+     *
+     * <p>AGP 8+ 默认 {@code android.nonFinalResIds=true}（R 字段非 final，调用点走
+     * getter，无内联）；旧版 AGP 或显式设为 false 时 R 字段为 final，资源 ID 被
+     * 编译期内联进调用点——一旦新版重排资源 ID，未被差分 dex 覆盖的旧代码会静默
+     * 引用错误资源（见 docs/RESOURCE_ID_STABILITY.md）。
+     *
+     * <p>这里读的是构建配置（dex 层实测由 patch-core 在生成时完成，结果写入
+     * patch.json 的 rFieldsFinal）。配置读取全部走反射/属性查询，避免硬依赖 AGP 类。
+     */
+    private void warnIfResIdsAreFinal(Logger logger) {
+        String propertyValue = null;
+        try {
+            Object value = getProject().findProperty("android.nonFinalResIds");
+            propertyValue = value != null ? value.toString() : null;
+        } catch (Exception e) {
+            logger.debug("Could not read android.nonFinalResIds: {}", e.getMessage());
+        }
+
+        String agpVersion = null;
+        try {
+            Class<?> versionClass = Class.forName("com.android.Version");
+            Object value = versionClass.getField("ANDROID_GRADLE_PLUGIN_VERSION").get(null);
+            agpVersion = value != null ? value.toString() : null;
+        } catch (Exception e) {
+            logger.debug("Could not determine AGP version: {}", e.getMessage());
+        }
+
+        if (shouldWarnAboutFinalResIds(propertyValue, agpVersion)) {
+            logger.warn("检测到 R 字段可能为 final（资源 ID 会被内联进 dex）："
+                    + "android.nonFinalResIds={}, AGP={}。",
+                    propertyValue != null ? propertyValue : "(未设置)",
+                    agpVersion != null ? agpVersion : "(未知)");
+            logger.warn("含资源的补丁在资源 ID 重排时会静默显示错误内容。"
+                    + "建议：升级到 AGP 8+（默认 nonFinalResIds=true），"
+                    + "并配合 aapt2 --stable-ids 固定资源 ID。"
+                    + "详见 docs/RESOURCE_ID_STABILITY.md");
+        }
+    }
+
+    /**
+     * 判定是否应给出「R 字段为 final」警告。
+     *
+     * <p>规则：
+     * <ul>
+     *   <li>{@code android.nonFinalResIds} 显式 false → 警告；</li>
+     *   <li>AGP 主版本 &lt; 8（默认非 final 为 false）→ 警告；</li>
+     *   <li>属性显式 true 或 AGP 8+ → 不警告。</li>
+     * </ul>
+     *
+     * @param propertyValue {@code android.nonFinalResIds} 的值；未设置传 null
+     * @param agpVersion    AGP 版本字符串（如 "8.12.0"）；未知传 null
+     */
+    static boolean shouldWarnAboutFinalResIds(String propertyValue, String agpVersion) {
+        if (propertyValue != null) {
+            String normalized = propertyValue.trim().toLowerCase();
+            if ("false".equals(normalized)) {
+                return true;
+            }
+            if ("true".equals(normalized)) {
+                return false;
+            }
+        }
+        Integer major = parseMajorVersion(agpVersion);
+        if (major != null) {
+            return major < 8;
+        }
+        // 两者都不可知：不打扰用户（dex 层实测结果仍会写入 patch.json）
+        return false;
+    }
+
+    /** 从 "8.12.0" / "8.12.0-alpha01" 提取主版本号；无法解析返回 null。 */
+    static Integer parseMajorVersion(String version) {
+        if (version == null) {
+            return null;
+        }
+        int dot = version.indexOf('.');
+        String head = dot >= 0 ? version.substring(0, dot) : version;
+        try {
+            return Integer.parseInt(head.trim());
+        } catch (NumberFormatException e) {
+            return null;
         }
     }
 

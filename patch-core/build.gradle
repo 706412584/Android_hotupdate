@@ -48,6 +48,9 @@ dependencies {
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'net.jqwik:jqwik:1.8.2'
     testImplementation 'org.assertj:assertj-core:3.24.2'
+    // dexlib2 的 Immutable* 类在方法签名中暴露 guava 类型（其 POM 声明为 runtime
+    // 依赖），测试构造 dex fixture 时需要编译期可见。
+    testImplementation 'com.google.guava:guava:27.1-android'
 
     // 测试使用 useJUnitPlatform()，必须提供 vintage engine 才能执行 JUnit 4 测试。
     // 缺少它时 JUnit 4 测试会被静默跳过（构建显示成功但实际未运行任何测试）。

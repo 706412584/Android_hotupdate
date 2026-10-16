@@ -45,6 +45,7 @@
 - **[常见问题](docs/FAQ.md)** - 问题排查指南
 - **[补丁包格式](docs/PATCH_FORMAT.md)** - 补丁包结构详解
 - **[resources.arsc 压缩问题](docs/RESOURCES_ARSC_COMPRESSION_EXPLAINED.md)** - 🆕 为什么不能压缩
+- **[资源 ID 稳定性](docs/RESOURCE_ID_STABILITY.md)** - 🆕 含资源补丁的放行条件与检测机制
 
 ### 开发指南
 - **[项目完成度评估](docs/PROJECT_STATUS_AND_ROADMAP.md)** - 🆕 当前状态和开发路线图

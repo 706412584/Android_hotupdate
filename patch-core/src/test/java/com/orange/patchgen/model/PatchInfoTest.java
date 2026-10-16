@@ -148,4 +148,48 @@ public class PatchInfoTest {
         assertThat(restored.getChanges().getResources().getModified())
                 .containsExactly("res/layout/main.xml");
     }
+
+    // ==================== 资源 ID 稳定性字段 ====================
+
+    @Test
+    public void jsonRoundTrip_preservesResourceIdsStable() {
+        PatchInfo original = validPatchInfo();
+        original.setResourceIdsStable(true);
+        original.setRFieldsFinal(false);
+
+        PatchInfo restored = PatchInfo.fromJson(original.toJson());
+
+        assertThat(restored.getResourceIdsStable()).isTrue();
+        assertThat(restored.getRFieldsFinal()).isFalse();
+    }
+
+    @Test
+    public void json_serializesExplicitFalse() {
+        // false 与缺失语义不同：含资源的补丁必须显式写 false（而非省略），
+        // 否则无法区分「不含资源」与「含资源但不稳定」。
+        PatchInfo info = validPatchInfo();
+        info.setResourceIdsStable(false);
+
+        String json = info.toJson();
+
+        assertThat(json).contains("\"resourceIdsStable\": false");
+    }
+
+    @Test
+    public void json_omitsNullStabilityFields() {
+        // 不含资源的补丁不写这两个字段（Gson 默认跳过 null）
+        String json = validPatchInfo().toJson();
+
+        assertThat(json).doesNotContain("resourceIdsStable");
+        assertThat(json).doesNotContain("rFieldsFinal");
+    }
+
+    @Test
+    public void fromJson_treatsMissingStabilityFieldsAsNull() {
+        // 旧版工具生成的 patch.json 没有这两个字段，反序列化必须安全
+        PatchInfo restored = PatchInfo.fromJson(validPatchInfo().toJson());
+
+        assertThat(restored.getResourceIdsStable()).isNull();
+        assertThat(restored.getRFieldsFinal()).isNull();
+    }
 }

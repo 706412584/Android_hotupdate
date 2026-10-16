@@ -23,7 +23,10 @@ import com.orange.patchgen.packer.PackContent;
 import com.orange.patchgen.packer.PatchPackException;
 import com.orange.patchgen.packer.PatchPacker;
 import com.orange.patchgen.parser.ApkParser;
+import com.orange.patchgen.parser.ArscParser;
+import com.orange.patchgen.parser.ArscResourceIds;
 import com.orange.patchgen.parser.ParseException;
+import com.orange.patchgen.parser.RFieldAnalyzer;
 import com.orange.patchgen.signer.PatchSigner;
 
 import org.apache.commons.io.FileUtils;
@@ -211,10 +214,43 @@ public class PatchGenerator {
                 System.out.println("[PatchGenerator] ⚠️ 没有资源变化，跳过 resources.arsc");
             }
             
-            // 5. 创建 PatchInfo
-            PatchInfo patchInfo = createPatchInfo(baseApkInfo, newApkInfo, dexDiffs, resDiff, assetsDiff);
+            // 5. 资源 ID 稳定性检测（含资源的补丁必须显式声明，消费侧据此放行/拒绝）
+            //
+            // 补丁整体替换 resources.arsc，而资源 ID 被内联进 dex 与二进制 XML。
+            // 若新版重排了既有资源的 ID，未被差分 dex 覆盖的旧代码会静默引用到
+            // 错误资源。判定结果写进 patch.json（resourceIdsStable），消费侧
+            // （如 ACS）只放行 true 的补丁。
+            boolean hasResourceChanges = resDiff != null && resDiff.hasChanges();
+            ResourceIdStability stability = hasResourceChanges
+                    ? checkResourceIdStability(new File(baseExtractDir, "resources.arsc"),
+                                               new File(newExtractDir, "resources.arsc"))
+                    : ResourceIdStability.notApplicable();
+
+            // 5.1 R 字段内联风险检测（dex 层实测 base APK，仅含资源时才有意义）
+            RFieldAnalyzer.Result rFieldResult = null;
+            if (hasResourceChanges) {
+                rFieldResult = RFieldAnalyzer.analyze(baseExtractDir);
+                if (rFieldResult.hasInlineRisk()) {
+                    System.out.println("[PatchGenerator] ⚠️ base APK 的 R 类字段为 final（"
+                            + rFieldResult.getFinalIntFields() + " 个静态 int 字段），"
+                            + "资源 ID 已内联进 dex");
+                    System.out.println("  建议构建时启用 android.nonFinalResIds=true（AGP 8+ 默认）"
+                            + "并配合 aapt2 --stable-ids，见 docs/RESOURCE_ID_STABILITY.md");
+                }
+            }
+            if (stability.isUnstable()) {
+                System.out.println("[PatchGenerator] ⚠️ 资源 ID 未对齐：" + stability.detail);
+                System.out.println("  patch.json 将写 resourceIdsStable=false，消费侧会拒绝此补丁；"
+                        + "建议启用 aapt2 --stable-ids 或改用完整 APK 更新");
+            } else if (Boolean.TRUE.equals(stability.stable)) {
+                System.out.println("[PatchGenerator] ✅ 资源 ID 对齐校验通过（resourceIdsStable=true）");
+            }
+
+            // 6. 创建 PatchInfo
+            PatchInfo patchInfo = createPatchInfo(baseApkInfo, newApkInfo, dexDiffs, resDiff, assetsDiff,
+                    stability, rFieldResult);
             
-            // 6. 打包补丁
+            // 7. 打包补丁
             PackContent packContent = new PackContent.Builder()
                     .patchInfo(patchInfo)
                     .dexFiles(patchDexFiles)
@@ -230,14 +266,14 @@ public class PatchGenerator {
                 return PatchResult.failure(GeneratorErrorCode.ERROR_CANCELLED, "Operation cancelled");
             }
             
-            // 7. 签名补丁
+            // 8. 签名补丁
             if (signingConfig != null && signingConfig.isValid()) {
                 callback.onSignStart();
                 PatchSigner signer = new PatchSigner(signingConfig);
                 signer.sign(patchFile);
             }
-            
-            // 8. 构建结果
+
+            // 9. 构建结果
             PatchResult result = PatchResult.success(patchFile, patchInfo, diffSummary);
             result.setGenerateTime(System.currentTimeMillis() - startTime);
             result.setBaseApkSize(baseApk.length());
@@ -730,13 +766,71 @@ public class PatchGenerator {
     }
 
     /**
+     * 比较 base 与 new 的资源 ID 映射，判定稳定性。
+     *
+     * <p>解析失败（arsc 缺失/损坏）按「不稳定」处理：无法证明对齐时宁可让消费侧
+     * 拒绝补丁，也不放行可能静默错乱的产物。
+     */
+    static ResourceIdStability checkResourceIdStability(File baseArsc, File newArsc) {
+        try {
+            ArscResourceIds baseIds = ArscParser.parse(baseArsc);
+            ArscResourceIds newIds = ArscParser.parse(newArsc);
+            if (baseIds.isEmpty() || newIds.isEmpty()) {
+                return ResourceIdStability.unstable(
+                        "资源映射为空（base=" + baseIds.size() + ", new=" + newIds.size() + "）");
+            }
+            if (ArscResourceIds.isStableAgainst(baseIds, newIds)) {
+                return ResourceIdStability.stable(baseIds.size());
+            }
+            // findMoved 最多返回 limit 条，这里只用于展示示例，不声称总数
+            List<String> moved = ArscResourceIds.findMoved(baseIds, newIds, 10);
+            return ResourceIdStability.unstable(
+                    "存在换 ID 或缺失的资源（base 共 " + baseIds.size() + " 个），示例: "
+                            + String.join("; ", moved));
+        } catch (ParseException e) {
+            return ResourceIdStability.unstable("resources.arsc 解析失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 资源 ID 稳定性判定结果。{@code stable} 为 null 表示不适用（补丁不含资源）。
+     */
+    static final class ResourceIdStability {
+        final Boolean stable;
+        final String detail;
+
+        private ResourceIdStability(Boolean stable, String detail) {
+            this.stable = stable;
+            this.detail = detail;
+        }
+
+        static ResourceIdStability notApplicable() {
+            return new ResourceIdStability(null, "");
+        }
+
+        static ResourceIdStability stable(int resourceCount) {
+            return new ResourceIdStability(Boolean.TRUE, resourceCount + " 个资源 ID 全部对齐");
+        }
+
+        static ResourceIdStability unstable(String detail) {
+            return new ResourceIdStability(Boolean.FALSE, detail);
+        }
+
+        boolean isUnstable() {
+            return Boolean.FALSE.equals(stable);
+        }
+    }
+
+    /**
      * 创建 PatchInfo
      */
-    private PatchInfo createPatchInfo(ApkInfo baseApkInfo, 
+    private PatchInfo createPatchInfo(ApkInfo baseApkInfo,
                                        ApkInfo newApkInfo,
                                        List<DexDiffResult> dexDiffs,
                                        ResourceDiffResult resDiff,
-                                       ResourceDiffResult assetsDiff) {
+                                       ResourceDiffResult assetsDiff,
+                                       ResourceIdStability stability,
+                                       RFieldAnalyzer.Result rFieldResult) {
         PatchInfo patchInfo = new PatchInfo();
         
         // 基本信息
@@ -812,10 +906,21 @@ public class PatchGenerator {
         }
         
         patchInfo.setChanges(changes);
-        
+
+        // 资源 ID 稳定性：仅在补丁含资源变更时写入（无资源时该标记无意义）。
+        // 消费侧读 optBoolean("resourceIdsStable", false)，缺失即拒绝含资源补丁。
+        if (stability != null && stability.stable != null) {
+            patchInfo.setResourceIdsStable(stability.stable);
+        }
+
+        // R 字段内联诊断：检测到任何 R 静态 int 字段才写（false 也是有效信息）。
+        if (rFieldResult != null && rFieldResult.isDetected()) {
+            patchInfo.setRFieldsFinal(rFieldResult.hasInlineRisk());
+        }
+
         // MD5 和文件大小会在打包后更新
         patchInfo.setMd5("00000000000000000000000000000000"); // 占位符
-        
+
         return patchInfo;
     }
 
